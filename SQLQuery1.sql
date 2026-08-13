@@ -164,7 +164,69 @@ EXEC sp_PerformTransfer
 @SenderWalletId = 5001,
 @ReceiverWalletId = 5002,
 @Amount = 3000.00;
-----------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------------------------3rd function
 
 --3rd function
 CREATE PROCEDURE sp_HandleFailedLogin
+    @Email VARCHAR(100)
+AS
+BEGIN 
+    SET NOCOUNT ON;
+
+    DECLARE @CurrentUserId INT;
+    DECLARE @CurrentFailedCount INT;
+    DECLARE @MaxLogin INT;
+
+  
+    SELECT TOP 1 @MaxLogin = MaxFailedLogins FROM SystemSettings;
+    SELECT @CurrentUserId = UserId, @CurrentFailedCount = FailedLoginCount FROM USERS WHERE Email = @Email;
+
+  
+    IF (@CurrentUserId IS NOT NULL)
+ BEGIN 
+       
+        SET @CurrentFailedCount = @CurrentFailedCount + 1;
+
+       
+        IF (@CurrentFailedCount >= @MaxLogin)
+ BEGIN
+            UPDATE USERS 
+            SET FailedLoginCount = @CurrentFailedCount, Status = 'LOCKED' 
+            WHERE UserId = @CurrentUserId;
+
+            INSERT INTO SecurityLogs (UserId, ActionType, Description) 
+            VALUES (@CurrentUserId, 'ACCOUNT_LOCKED', 'Account locked due to consecutive failed login attempts.');
+
+            PRINT 'Account has been LOCKED due to multiple failed attempts!';
+ END 
+        ELSE 
+ BEGIN 
+            UPDATE USERS 
+            SET FailedLoginCount = @CurrentFailedCount 
+            WHERE UserId = @CurrentUserId;
+
+            PRINT 'Invalid password. Attempt recorded.';
+ END 
+ END
+    ELSE 
+ BEGIN 
+        PRINT 'User not found!';
+    END 
+END;
+GO
+
+
+--3rd main
+ EXEC sp_HandleFailedLogin   @Email = 'hafsa@vaultline.com';
+ EXEC sp_HandleFailedLogin   @Email = 'hafsa@vaultline.com';
+ EXEC sp_HandleFailedLogin   @Email = 'hafsa@vaultline.com';
+
+
+ EXEC sp_HandleFailedLogin @Email = 'fakeuser@gmail.com';
+ SELECT UserId, FullName, Email, Status, FailedLoginCount FROM USERS WHERE Email = 'hafsa@vaultline.com';
+
+ SELECT * FROM SecurityLogs;
+
+
