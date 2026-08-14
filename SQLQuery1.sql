@@ -230,3 +230,35 @@ GO
  SELECT * FROM SecurityLogs;
 
 
+ ----------------------------------------4th method  
+
+ CREATE OR ALTER TRIGGER trg_CheckHighValueTransaction 
+ ON TRANSACTIONS
+ AFTER INSERT 
+ AS
+
+ BEGIN
+      SET NOCOUNT ON ; 
+      DECLARE @HightThreshold DECIMAL (18,2);
+
+
+      SELECT TOP 1 @HightThreshold = HighValueThreshold FROM SystemSettings; 
+
+      INSERT INTO FraudAlerts (TransactionID, UserID, RiskLevel, Reason) SELECT i.TransactionId, w.UserId ,'High' , CONCAT ('High Value Transfer Detected: PKR ', i.Amount ) 
+
+      FROM inserted i INNER JOIN WALLETS W ON i.SenderWalletId = w.WalletId  WHERE i.Amount >= @HightThreshold; 
+
+END;
+GO 
+
+----4th main 
+UPDATE WALLETS SET Balance = 160000.00 WHERE WalletId = 5001;
+EXEC sp_PerformTransfer 
+@SenderWalletId = 5001,
+    @ReceiverWalletId = 5002,
+    @Amount = 105000.00;
+
+
+    SELECT * FROM FraudAlerts;
+
+       
