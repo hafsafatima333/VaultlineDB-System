@@ -153,9 +153,17 @@ IF (@SenderWalletId = @ReceiverWalletId)
     END
 
 
-
-
 DECLARE @SenderBalance DECIMAL(18,2);
+DECLARE @SenderDailyLimit DECIMAL(18,2);
+DECLARE @TodaysTotalSent DECIMAL(18,2); 
+
+
+SELECT @SenderBalance = Balance , @SenderDailyLimit = DailyLimit FROM WALLETS WHERE WalletId = @SenderWalletId;
+
+
+
+
+
 
 SELECT @SenderBalance = Balance FROM WALLETS WHERE WalletId = @SenderWalletId;    
 IF(@SenderBalance IS NULL OR @SenderBalance < @Amount)
