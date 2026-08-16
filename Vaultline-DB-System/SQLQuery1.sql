@@ -143,6 +143,18 @@ CREATE PROCEDURE sp_PerformTransfer
 AS
 BEGIN 
 SET NOCOUNT ON;
+
+
+
+IF (@SenderWalletId = @ReceiverWalletId)
+    BEGIN
+        PRINT 'ERROR: SENDER AND RECEIVER CANNOT BE THE SAME!';
+        RETURN;
+    END
+
+
+
+
 DECLARE @SenderBalance DECIMAL(18,2);
 
 SELECT @SenderBalance = Balance FROM WALLETS WHERE WalletId = @SenderWalletId;    
