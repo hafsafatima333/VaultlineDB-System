@@ -159,18 +159,23 @@ DECLARE @TodaysTotalSent DECIMAL(18,2);
 
 
 SELECT @SenderBalance = Balance , @SenderDailyLimit = DailyLimit FROM WALLETS WHERE WalletId = @SenderWalletId;
-
-
-
-
-
-
-SELECT @SenderBalance = Balance FROM WALLETS WHERE WalletId = @SenderWalletId;    
+ 
 IF(@SenderBalance IS NULL OR @SenderBalance < @Amount)
 BEGIN 
      PRINT 'ERROR: INSUFFICIENT BALANCE!';
      RETURN;
 END
+
+
+SELECT @TodaysTotalSent = ISNULL(SUM(Amount),0) FROM TRANSACTION WHERE 
+SenderWalletId = @SenderWalletId 
+AND TransactionType = 'Transfer'
+AND CAST(TranactionDate as DATE ) = CAST (GETDATE() AS DATE)
+AND Status <> 'Failed';
+
+
+
+
 
 BEGIN TRANSACTION; 
 BEGIN TRY 
