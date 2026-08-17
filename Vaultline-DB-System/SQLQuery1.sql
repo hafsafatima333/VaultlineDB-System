@@ -348,6 +348,8 @@ LEFT JOIN USERS AS uSender ON wSender.UserID = uSender.UserId
 INNER JOIN WALLETS AS wReceiver ON t.ReceiverWalletId = wReceiver.WalletId
 INNER JOIN USERS AS uReceiver ON wReceiver.UserID = uReceiver.UserId;
 GO
+
+--5th main 
 SELECT * FROM   vw_TransactionAuditSummary;
 
 
