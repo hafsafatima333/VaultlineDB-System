@@ -334,7 +334,7 @@ GO
 CREATE OR ALTER VIEW vw_TransactionAuditSummary
 AS
 SELECT t.TransactionId,
-       ISNULL(uSender.FullName, 'System Deposit / Top-Up') AS SenderName,
+       ISNULL(uSender.FullName, 'System Deposit') AS SenderName,
        ISNULL(wSender.AccountNo, 'N/A') AS SenderAccount,
        uReceiver.FullName AS ReceiverName,
        wReceiver.AccountNo AS ReceiverAccount,
