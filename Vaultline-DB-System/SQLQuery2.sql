@@ -1,15 +1,14 @@
 
-IF DB_ID('VaultlineDB') IS NOT NULL
-BEGIN
-    ALTER DATABASE VaultlineDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE VaultlineDB;
-END
-GO
+
+USE VaultlineDB;
+SELECT name FROM sys.tables;
+SELECT name FROM sys.procedures;
+SELECT name FROM sys.views;
+
+
 
 CREATE DATABASE VaultlineDB;
 GO
-
-
 USE VaultlineDB;
 GO
 --user table
@@ -79,7 +78,7 @@ VALUES                     (50000.00, 100000.00, 3);
 
 GO
 --FUNCTION:
-CREATE OR ALTER PROCEDURE usp_RegisterUser
+CREATE OR ALTER PROCEDURE sp_RegisterUser
 @FullName VARCHAR (70), @Email VARCHAR (50), @PasswordHash VARCHAR (300), @Role VARCHAR (20), @AccountNo VARCHAR (30)
 AS
 BEGIN
@@ -103,13 +102,13 @@ END
 
 GO
 --main
-EXECUTE usp_RegisterUser @FullName = 'Hafsa Fatima', @Email = 'hafsa@vaultline.com', @PasswordHash = 'hashed_pass_123', @Role = 'Customer', @AccountNo = 'VL-10492';
+EXECUTE sp_RegisterUser @FullName = 'Hafsa Fatima', @Email = 'hafsa@vaultline.com', @PasswordHash = 'hashed_pass_123', @Role = 'Customer', @AccountNo = 'VL-10492';
 
-EXECUTE usp_RegisterUser @FullName = 'Hashmat Ali', @Email = 'ali@vaultline.com', @PasswordHash = 'hashed_pass_456', @Role = 'Customer', @AccountNo = 'VL-10493';
+EXECUTE sp_RegisterUser @FullName = 'Hashmat Ali', @Email = 'ali@vaultline.com', @PasswordHash = 'hashed_pass_456', @Role = 'Customer', @AccountNo = 'VL-10493';
 
-EXECUTE usp_RegisterUser @FullName = 'Daniya Khan', @Email = 'daniya@gmail.com', @PasswordHash = 'hashed_pass_789', @Role = 'Merchant', @AccountNo = 'VL-10494';
+EXECUTE sp_RegisterUser @FullName = 'Daniya Khan', @Email = 'daniya@gmail.com', @PasswordHash = 'hashed_pass_789', @Role = 'Merchant', @AccountNo = 'VL-10494';
 
-EXECUTE usp_RegisterUser @FullName = 'Zubair Alam', @Email = 'zubair123@gmail.com', @PasswordHash = 'hashed_pass_675', @Role = 'Customer', @AccountNo = 'VL-10495';
+EXECUTE sp_RegisterUser @FullName = 'Zubair Alam', @Email = 'zubair123@gmail.com', @PasswordHash = 'hashed_pass_675', @Role = 'Customer', @AccountNo = 'VL-10495';
 
 SELECT *
 FROM   USERS;
@@ -123,7 +122,7 @@ FROM   TRANSACTIONS;
 
 GO
 ---------------------------------------------------2ND METHOD
-CREATE OR ALTER PROCEDURE usp_PerformTransfer
+CREATE OR ALTER PROCEDURE sp_PerformTransfer
 @SenderWalletId INT, @ReceiverWalletId INT, @Amount DECIMAL (18, 2)
 AS
 BEGIN
@@ -186,11 +185,11 @@ UPDATE WALLETS
 SET    BALANCE = 10000.00
 WHERE  WalletId = 5001;
 
-EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 3000.00;
+EXECUTE sp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 3000.00;
 
 --Test 1
 --THIS WILL GENERATE THE ERROR --> ERROR: SENDER AND RECEIVER CANNOT BE THE SAME
-EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5001, @Amount = 500.00;
+EXECUTE sp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5001, @Amount = 500.00;
 
 --Test2
 --DAILY TRANSFER LIMIT EXCEEDED CASE
@@ -198,13 +197,13 @@ UPDATE WALLETS
 SET    Balance = 60000.00
 WHERE  WalletId = 5001;
 
-EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 55000.00;
+EXECUTE sp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 55000.00;
 
 
 GO
 --------------------------------------------------------------------------------------------------3rd function
 --3rd function
-CREATE OR ALTER PROCEDURE usp_HandleFailedLogin
+CREATE OR ALTER PROCEDURE sp_HandleFailedLogin
 @Email VARCHAR (100)
 AS
 BEGIN
@@ -248,21 +247,24 @@ END
 
 GO
 --3rd main
-EXECUTE usp_HandleFailedLogin
-@Email = 'hafsa@vaultline.com';
+EXECUTE sp_HandleFailedLogin @Email = 'hafsa@vaultline.com';
 
-EXECUTE usp_HandleFailedLogin 
-@Email = 'hafsa@vaultline.com';
+EXECUTE sp_HandleFailedLogin @Email = 'hafsa@vaultline.com';
 
-EXECUTE usp_HandleFailedLogin 
-@Email = 'hafsa@vaultline.com';
+EXECUTE sp_HandleFailedLogin @Email = 'hafsa@vaultline.com';
 
-EXECUTE usp_HandleFailedLogin 
-@Email = 'fakeuser@gmail.com';
+EXECUTE sp_HandleFailedLogin @Email = 'fakeuser@gmail.com';
 
-SELECT UserId, FullName, Email, Status,FailedLoginCount FROM   USERS WHERE  Email = 'hafsa@vaultline.com';
+SELECT UserId,
+       FullName,
+       Email,
+       Status,
+       FailedLoginCount
+FROM   USERS
+WHERE  Email = 'hafsa@vaultline.com';
 
-SELECT * FROM   SecurityLogs;
+SELECT *
+FROM   SecurityLogs;
 
 
 GO
@@ -294,13 +296,15 @@ UPDATE WALLETS
 SET    Balance = 160000.00
 WHERE  WalletId = 5001;
 
-EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 105000.00;
+EXECUTE sp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 105000.00;
 
-EXECUTE usp_PerformTransfer @SenderWalletId = 5004, @ReceiverWalletId = 5003, @Amount = 120000.00;
+EXECUTE sp_PerformTransfer @SenderWalletId = 5004, @ReceiverWalletId = 5003, @Amount = 120000.00;
 
-SELECT *FROM   FraudAlerts;
+SELECT *
+FROM   FraudAlerts;
 
-SELECT *FROM   WALLETS;
+SELECT *
+FROM   WALLETS;
 
 
 GO
@@ -332,66 +336,5 @@ FROM   TRANSACTIONS AS t
 
 
 GO
-SELECT * FROM   vw_TransactionAuditSummary;
-
-
-----------------------------------------------------------6th method 
-CREATE OR ALTER PROCEDURE usp_DepositFunds
-@WalletId INT ,
-@Amount DECIMAL (18,2) 
-
-AS 
-BEGIN
-    SET NOCOUNT ON ;
-    --CONDITIONS
-    IF(@Amount <= 0 )
-    BEGIN 
-    
-        PRINT 'ERROR: DEPOSIT AMOUNT MUST BE GREATER THAN ZERO!';
-        RETURN;
-    END
-
-    IF NOT EXISTS(SELECT 1 FROM WALLETS WHERE WalletId = @WalletId)
-    BEGIN 
-    PRINT 'ERROR: WALLET NOT FOUND!';
-    RETURN;
-    END
-
-----------BALANCE DEPOSIT     
-    BEGIN TRANSACTION ;
-    BEGIN TRY 
-    UPDATE WALLETS SET Balance = Balance + @Amount WHERE WalletId = @WalletId ;
-
-    INSERT  INTO TRANSACTIONS (SenderWalletId, ReceiverWalletId, Amount, TransactionType, Status)  VALUES (NULL, @WalletId, @Amount, 'Deposit', 'Verified');
-    COMMIT TRANSACTION;
-    PRINT 'Funds Deposited Successfully!';
-    END TRY 
-    BEGIN CATCH 
-    ROLLBACK TRANSACTION ;
-    PRINT 'Error: Deposit Failed!';
-    END CATCH 
-    END;
-    GO
-
-
-    -------------6TH MAIN 
-    EXEC usp_DepositFunds
-    @WalletId = 5001,
-    @Amount = 500;
-
-    SELECT * FROM WALLETS WHERE WalletId = 5001;
-
-    -- 2. Negative Amount Test (Error test)
-   EXEC usp_DepositFunds 
-   @WalletId = 5001, 
-   @Amount = -500.00;
-
--- 3. Invalid Wallet Test (Error test)
-   EXEC usp_DepositFunds 
-   @WalletId = 9999, 
-   @Amount = 2000.00;
-
-   -- Verification
-   SELECT * FROM WALLETS WHERE WalletId = 5001;
-   SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Deposit';
-   GO
+SELECT *
+FROM   vw_TransactionAuditSummary;
