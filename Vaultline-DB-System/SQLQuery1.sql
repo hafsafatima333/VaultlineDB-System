@@ -138,7 +138,7 @@ BEGIN
 -- NEW CHECK: Sender Account Status Check (Locked / Suspended)
     DECLARE @SenderStatus VARCHAR(20);
     SELECT @SenderStatus = u.Status FROM WALLETS w INNER JOIN  USERS u ON w.UserId = u.UserId WHERE w.WalletId = @SenderWalletId;
-    IF (@SenderStatus <> 'ACctive')
+    IF (@SenderStatus <> 'Active')
     BEGIN 
          PRINT 'ERROR: SENDER ACCOUNT IS LOCKED OR SUSPENDED!';
         RETURN;
@@ -214,8 +214,20 @@ WHERE  WalletId = 5001;
 
 EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 55000.00;
 
+---------------------
 
+SELECT * FROM WALLETS ;
+--SENDER
+UPDATE WALLETS
+SET    Balance = 500.00
+WHERE  WalletId = 5004;
+--REC
+UPDATE WALLETS
+SET    Balance = 500.00
+WHERE  WalletId = 5003;
+EXECUTE usp_PerformTransfer @SenderWalletId = 5003, @ReceiverWalletId = 5004, @Amount = 100.00;
 GO
+
 --------------------------------------------------------------------------------------------------3rd function
 --3rd function
 CREATE OR ALTER PROCEDURE usp_HandleFailedLogin
@@ -318,33 +330,23 @@ SELECT *FROM   WALLETS;
 
 
 GO
------------------------------5th component
+----------------------------------------------------------5th component
 CREATE OR ALTER VIEW vw_TransactionAuditSummary
 AS
 SELECT t.TransactionId,
-       uSender.FullName AS SenderName,
-       wSender.AccountNo AS SenderAccount,
+       ISNULL(uSender.FullName, 'System Deposit / Top-Up') AS SenderName,
+       ISNULL(wSender.AccountNo, 'N/A') AS SenderAccount,
        uReceiver.FullName AS ReceiverName,
        wReceiver.AccountNo AS ReceiverAccount,
        t.Amount,
        t.TransactionType,
        t.Status,
        t.TransactionDate
-FROM   TRANSACTIONS AS t
-       INNER JOIN
-       WALLETS AS wSender
-       ON t.SenderWalletId = wSender.WalletId
-       INNER JOIN
-       USERS AS uSender
-       ON wSender.UserID = uSender.UserId
-       INNER JOIN
-       WALLETS AS wReceiver
-       ON t.ReceiverWalletId = wReceiver.WalletId
-       INNER JOIN
-       USERS AS uReceiver
-       ON wReceiver.UserID = uReceiver.UserId;
-
-
+FROM TRANSACTIONS AS t
+LEFT JOIN WALLETS AS wSender ON t.SenderWalletId = wSender.WalletId
+LEFT JOIN USERS AS uSender ON wSender.UserID = uSender.UserId
+INNER JOIN WALLETS AS wReceiver ON t.ReceiverWalletId = wReceiver.WalletId
+INNER JOIN USERS AS uReceiver ON wReceiver.UserID = uReceiver.UserId;
 GO
 SELECT * FROM   vw_TransactionAuditSummary;
 
