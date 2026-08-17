@@ -329,9 +329,9 @@ EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @A
 
 EXECUTE usp_PerformTransfer @SenderWalletId = 5004, @ReceiverWalletId = 5003, @Amount = 120000.00;
 
-SELECT *FROM   FraudAlerts;
+SELECT *FROM FraudAlerts;
 
-SELECT *FROM   WALLETS;
+SELECT *FROM WALLETS;
 
 
 GO
