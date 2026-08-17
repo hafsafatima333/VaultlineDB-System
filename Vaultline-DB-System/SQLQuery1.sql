@@ -136,11 +136,18 @@ BEGIN
 
 
 -- NEW CHECK: Sender Account Status Check (Locked / Suspended)
-    DECLARE @SenderStatus VARCHAR(20);
+    DECLARE @SenderStatus VARCHAR(20),
+     @ReceiverStatus VARCHAR(20);
     SELECT @SenderStatus = u.Status FROM WALLETS w INNER JOIN  USERS u ON w.UserId = u.UserId WHERE w.WalletId = @SenderWalletId;
+    SELECT @ReceiverStatus = u.Status FROM WALLETS w INNER JOIN USERS u ON  w.UserId = u.UserId WHERE w.WalletId = @ReceiverWalletId;
     IF (@SenderStatus <> 'Active')
     BEGIN 
          PRINT 'ERROR: SENDER ACCOUNT IS LOCKED OR SUSPENDED!';
+        RETURN;
+    END
+    IF (@ReceiverStatus <> 'Active')
+    BEGIN 
+        PRINT 'ERROR: RECEIVER ACCOUNT IS LOCKED OR SUSPENDED!';
         RETURN;
     END
 
