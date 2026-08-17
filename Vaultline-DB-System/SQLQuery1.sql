@@ -257,11 +257,9 @@ BEGIN
             IF (@CurrentFailedCount >= @MaxLogin)
                 BEGIN
                     UPDATE USERS
-                    SET    FailedLoginCount = @CurrentFailedCount,
-                           Status           = 'LOCKED'
+                    SET  FailedLoginCount = @CurrentFailedCount, Status = 'Locked'
                     WHERE  UserId = @CurrentUserId;
-                    INSERT  INTO SecurityLogs (UserId, ActionType, Description)
-                    VALUES                   (@CurrentUserId, 'ACCOUNT_LOCKED', 'Account locked due to consecutive failed login attempts.');
+                    INSERT  INTO SecurityLogs (UserId, ActionType, Description)  VALUES   (@CurrentUserId, 'ACCOUNT_LOCKED', 'Account locked due to consecutive failed login attempts.');
                     PRINT 'Account has been LOCKED due to multiple failed attempts!';
                 END
             ELSE
