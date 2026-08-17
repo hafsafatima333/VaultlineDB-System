@@ -133,6 +133,20 @@ BEGIN
             PRINT 'ERROR: SENDER AND RECEIVER CANNOT BE THE SAME!';
             RETURN;
         END
+
+
+-- NEW CHECK: Sender Account Status Check (Locked / Suspended)
+    DECLARE @SenderStatus VARCHAR(20);
+    SELECT @SenderStatus = u.Status FROM WALLETS w INNER JOIN  USERS u ON w.UserId = u.UserId WHERE w.WalletId = @SenderWalletId;
+    IF (@SenderStatus <> 'ACctive')
+    BEGIN 
+         PRINT 'ERROR: SENDER ACCOUNT IS LOCKED OR SUSPENDED!';
+        RETURN;
+    END
+
+
+
+
     DECLARE @SenderBalance AS DECIMAL (18, 2);
     DECLARE @SenderDailyLimit AS DECIMAL (18, 2);
     DECLARE @TodaysTotalSent AS DECIMAL (18, 2);
@@ -395,3 +409,7 @@ BEGIN
    SELECT * FROM WALLETS WHERE WalletId = 5001;
    SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Deposit';
    GO
+
+
+  
+
