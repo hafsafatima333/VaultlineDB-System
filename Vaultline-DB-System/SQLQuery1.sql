@@ -412,4 +412,39 @@ BEGIN
 
 
   
+  ---------------------7th method 
+  CREATE OR ALTER PROCEDURE usp_UnlockAccount
+    @Email VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @CurrentUserId INT;
+
+    SELECT @CurrentUserId = UserId FROM USERS WHERE Email = @Email ; 
+IF (@CurrentUserId IS NOT NULL ) 
+    BEGIN 
+    UPDATE USERS SET Status = 'Active' , FailedLoginCount = 0 WHERE UserId = @CurrentUserId;
+    INSERT INTO SecurityLogs(UserID , ActionType, Description) VALUES ( @CurrentUserId , 'ACCOUNT_UNLOCKED', 'Account manually unlocked by Admin.');
+    PRINT 'Account has been successfully unlocked!';
+    END 
+
+ELSE 
+    BEGIN 
+    PRINT 'ERROR: USER NOT FOUND!';
+    END 
+
+END;
+GO 
+
+
+----7TH MAIN 
+EXEC  usp_UnlockAccount
+@Email = 'hafsa@vaultline.com';
+
+--for verfication 
+SELECT  *  FROM USERS WHERE Email = 'hafsa@vaultline.com';
+SELECT * FROM SecurityLogs WHERE ActionType = 'ACCOUNT_UNLOCKED';
+SELECT * FROM TRANSACTIONS;
+GO
+
 
