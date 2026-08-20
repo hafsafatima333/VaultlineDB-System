@@ -12,6 +12,11 @@ GO
 
 USE VaultlineDB;
 GO
+
+
+
+DELETE FROM TRANSACTIONS;
+DELETE FROM FraudAlerts;
 --user table
 CREATE TABLE USERS (
     UserId           INT           IDENTITY (1001, 1) PRIMARY KEY,
@@ -110,6 +115,21 @@ EXECUTE usp_RegisterUser @FullName = 'Hashmat Ali', @Email = 'ali@vaultline.com'
 EXECUTE usp_RegisterUser @FullName = 'Daniya Khan', @Email = 'daniya@gmail.com', @PasswordHash = 'hashed_pass_789', @Role = 'Merchant', @AccountNo = 'VL-10494';
 
 EXECUTE usp_RegisterUser @FullName = 'Zubair Alam', @Email = 'zubair123@gmail.com', @PasswordHash = 'hashed_pass_675', @Role = 'Customer', @AccountNo = 'VL-10495';
+
+--ADMIN ACCOUNT (bank staff not self-registered by users)
+EXECUTE usp_RegisterUser
+@FullName = 'Admin User', 
+@Email = 'admin@vaultline.com', 
+@PasswordHash = 'admin_pass_001', 
+@Role = 'Admin',
+@AccountNo = 'VL-90001';
+
+
+SELECT *
+FROM   USERS;
+
+SELECT *
+FROM   WALLETS;
 
 SELECT *
 FROM   USERS;
