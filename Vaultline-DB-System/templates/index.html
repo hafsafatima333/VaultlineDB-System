@@ -3,1068 +3,5235 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Vaultline — Wallet & Transaction Ledger</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-  :root{
-    --bg: #0F1319;
-    --panel: #161C24;
-    --panel-2: #1C2430;
-    --panel-3: #202A38;
-    --border: #262F3B;
-    --border-soft: #1E2530;
-    --text: #EDEAE0;
-    --text-dim: #8B93A1;
-    --text-faint: #5A6270;
-    --gold: #C9A227;
-    --gold-soft: rgba(201,162,39,0.14);
-    --teal: #2BA89A;
-    --teal-soft: rgba(43,168,154,0.14);
-    --rose: #E4572E;
-    --rose-soft: rgba(228,87,46,0.14);
-    --radius: 10px;
-    --font-display: 'Fraunces', serif;
-    --font-body: 'Inter', -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-  ::selection{ background: var(--gold-soft); color: var(--gold); }
+:root{
+    --bg:#0F1319;
+    --panel:#161C24;
+    --panel-2:#1C2430;
+    --panel-3:#202A38;
+    --border:#262F3B;
+    --border-soft:#1E2530;
+    --text:#EDEAE0;
+    --text-dim:#8B93A1;
+    --text-faint:#5A6270;
+    --gold:#C9A227;
+    --gold-soft:rgba(201,162,39,.14);
+    --teal:#2BA89A;
+    --teal-soft:rgba(43,168,154,.14);
+    --rose:#E4572E;
+    --rose-soft:rgba(228,87,46,.14);
+    --radius:10px;
+    --font-display:'Fraunces',serif;
+    --font-body:'Inter',-apple-system,sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+}
 
-  .seal{
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 10px 3px 8px;
-    border-radius: 999px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    border: 1px solid currentColor;
-    white-space: nowrap;
-  }
-  .seal::before{
-    content:'';
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-  }
-  .seal.ok{ color: var(--teal); background: var(--teal-soft); }
-  .seal.pending{ color: var(--gold); background: var(--gold-soft); }
-  .seal.flag{ color: var(--rose); background: var(--rose-soft); }
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
 
-  #login-screen{
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    padding: 24px;
-  }
-  #login-screen::before{
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+}
+
+button,
+input,
+select{
+    font:inherit;
+}
+
+button{
+    border:0;
+}
+
+::selection{
+    background:var(--gold-soft);
+    color:var(--gold);
+}
+
+/* =========================
+   STATUS SEALS
+========================= */
+
+.seal{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:3px 10px 3px 8px;
+    border-radius:999px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    border:1px solid currentColor;
+    white-space:nowrap;
+}
+
+.seal::before{
     content:'';
-    position:absolute; inset:0;
-    background:
-      radial-gradient(circle at 15% 20%, rgba(201,162,39,0.07), transparent 40%),
-      radial-gradient(circle at 85% 80%, rgba(43,168,154,0.08), transparent 45%);
-    pointer-events:none;
-  }
-  .ledger-lines{
-    position:absolute; inset:0;
-    background-image: repeating-linear-gradient(180deg, transparent, transparent 38px, var(--border-soft) 39px);
-    opacity:0.5;
-    pointer-events:none;
-  }
-  .login-card{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:currentColor;
+    flex-shrink:0;
+}
+
+.seal.ok{
+    color:var(--teal);
+    background:var(--teal-soft);
+}
+
+.seal.pending{
+    color:var(--gold);
+    background:var(--gold-soft);
+}
+
+.seal.flag{
+    color:var(--rose);
+    background:var(--rose-soft);
+}
+
+/* =========================
+   LOGIN
+========================= */
+
+#login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     position:relative;
-    width: 100%;
-    max-width: 420px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 44px 40px 36px;
-    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
-    animation: rise 0.6s cubic-bezier(.2,.8,.2,1);
-  }
-  @keyframes rise{ from{opacity:0; transform: translateY(14px);} to{opacity:1; transform:translateY(0);} }
-  .brand-mark{
-    display:flex; align-items:center; gap:10px; margin-bottom: 28px;
-  }
-  .brand-glyph{
-    width:36px; height:36px; border-radius:8px;
-    background: linear-gradient(155deg, var(--gold), #8a6c1a);
-    display:flex; align-items:center; justify-content:center;
-    font-family: var(--font-display); font-weight:700; font-size:18px; color:#151107;
-  }
-  .brand-name{ font-family: var(--font-display); font-size: 20px; font-weight:600; letter-spacing:0.01em; }
-  .brand-sub{ font-size:11px; color:var(--text-faint); font-family:var(--font-mono); letter-spacing:0.08em; text-transform:uppercase; }
+    padding:24px;
+}
 
-  h1.login-title{ font-family: var(--font-display); font-size: 28px; font-weight:600; margin-bottom:6px; }
-  p.login-desc{ color: var(--text-dim); font-size: 13.5px; margin-bottom: 24px; line-height:1.5; }
+#login-screen::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:
+        radial-gradient(
+            circle at 15% 20%,
+            rgba(201,162,39,.07),
+            transparent 40%
+        ),
+        radial-gradient(
+            circle at 85% 80%,
+            rgba(43,168,154,.08),
+            transparent 45%
+        );
+    pointer-events:none;
+}
 
-  .field{ margin-bottom: 16px; }
-  .field label{ display:block; font-size:11.5px; color:var(--text-dim); margin-bottom:6px; letter-spacing:0.03em; text-transform:uppercase; font-family: var(--font-mono); }
-  .field input{
-    width:100%; padding: 12px 14px; border-radius: 8px;
-    background: var(--panel-2); border:1px solid var(--border); color: var(--text);
-    font-size:14px; font-family: var(--font-body); outline:none;
-    transition: border-color 0.15s;
-  }
-  .field input:focus{ border-color: var(--gold); }
-  .field input::placeholder{ color: var(--text-faint); }
+.login-card{
+    width:100%;
+    max-width:420px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:44px 40px 36px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.6);
+    position:relative;
+    z-index:1;
+}
 
-  .btn{
-    width:100%; padding: 13px; border-radius: 8px; border:none;
-    background: var(--gold); color: #151107; font-weight:700; font-size:14px;
-    cursor:pointer; font-family: var(--font-body); letter-spacing:0.01em;
-    transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
-  }
-  .btn:hover{ background:#DDB62E; box-shadow: 0 8px 20px -8px rgba(201,162,39,0.5); }
-  .btn:active{ transform: scale(0.98); }
-  .btn:focus-visible, a:focus-visible, button:focus-visible, input:focus-visible{ outline: 2px solid var(--teal); outline-offset:2px; }
+.brand-mark{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:28px;
+}
 
-  .login-toggle{ text-align:center; margin-top: 18px; font-size:13px; color: var(--text-faint); }
-  .login-toggle span{ color: var(--teal); cursor:pointer; font-weight:600; }
+.brand-glyph{
+    width:36px;
+    height:36px;
+    border-radius:8px;
+    background:linear-gradient(155deg,var(--gold),#8a6c1a);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:18px;
+    color:#151107;
+}
 
-  .modal-overlay{
-    display:none; position:fixed; inset:0; z-index:50;
-    background: rgba(6,8,11,0.72);
-    align-items:center; justify-content:center; padding:24px;
-    backdrop-filter: blur(2px);
-  }
-  .modal-overlay.active{ display:flex; }
-  .modal-card{
-    width:100%; max-width:420px; background: var(--panel); border:1px solid var(--border);
-    border-radius:16px; padding: 34px 34px 28px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
-    animation: rise 0.35s cubic-bezier(.2,.8,.2,1); position:relative;
-  }
-  .modal-close{
-    position:absolute; top:16px; right:16px; width:28px; height:28px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center; color: var(--text-faint);
-    cursor:pointer; border:1px solid var(--border); font-size:14px;
-  }
-  .modal-close:hover{ color: var(--rose); border-color: var(--rose); }
-  .field select{
-    width:100%; padding: 12px 14px; border-radius: 8px;
-    background: var(--panel-2); border:1px solid var(--border); color: var(--text);
-    font-size:14px; font-family: var(--font-body); outline:none; appearance:none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B93A1' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position: right 12px center; background-size:16px;
-  }
-  .field select:focus{ border-color: var(--gold); }
+.brand-name{
+    font-family:var(--font-display);
+    font-size:20px;
+    font-weight:600;
+}
 
-  #app{ display:none; min-height:100vh; }
-  #app.active{ display:flex; }
+.brand-sub{
+    font-size:11px;
+    color:var(--text-faint);
+    font-family:var(--font-mono);
+    text-transform:uppercase;
+}
 
-  .sidebar{
-    width: 236px; flex-shrink:0; background: var(--panel);
-    border-right: 1px solid var(--border);
-    display:flex; flex-direction:column;
-    padding: 22px 16px;
-    position: sticky; top:0; height:100vh;
-  }
-  .sidebar .brand-mark{ padding: 0 6px; margin-bottom: 30px; }
-  .nav-group-label{
-    font-family: var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:0.1em;
-    color: var(--text-faint); padding: 0 12px; margin: 18px 0 8px;
-  }
-  .nav-item{
-    display:flex; align-items:center; gap:11px; padding: 10px 12px; border-radius: 8px;
-    color: var(--text-dim); font-size: 13.5px; font-weight:500; cursor:pointer;
-    transition: all 0.14s; margin-bottom: 2px; position:relative;
-  }
-  .nav-item svg{ width:17px; height:17px; flex-shrink:0; opacity:0.85; }
-  .nav-item:hover{ background: var(--panel-2); color: var(--text); }
-  .nav-item.active{ background: var(--gold-soft); color: var(--gold); }
-  .nav-item.active svg{ opacity:1; }
+h1.login-title{
+    font-family:var(--font-display);
+    font-size:28px;
+    font-weight:600;
+    margin-bottom:6px;
+}
 
-  .sidebar-foot{ margin-top:auto; padding: 14px 12px 4px; border-top:1px solid var(--border-soft); }
-  .user-pill{ display:flex; align-items:center; gap:10px; }
-  .avatar{
-    width:34px; height:34px; border-radius:50%; background: linear-gradient(155deg, var(--teal), #12524b);
-    display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:13px; flex-shrink:0;
-  }
-  .user-pill .u-name{ font-size:13px; font-weight:600; }
-  .user-pill .u-role{ font-size:11px; color: var(--text-faint); font-family: var(--font-mono); }
-  .logout-link{ font-size:11.5px; color: var(--text-faint); margin-top:10px; cursor:pointer; display:inline-block; }
-  .logout-link:hover{ color: var(--rose); }
+p.login-desc{
+    color:var(--text-dim);
+    font-size:13.5px;
+    margin-bottom:24px;
+    line-height:1.5;
+}
 
-  .main{ flex:1; padding: 30px 38px 60px; max-width: 1180px; }
-  .view{ display:none; animation: fadein 0.35s ease; }
-  .view.active{ display:block; }
-  @keyframes fadein{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+/* =========================
+   FORMS
+========================= */
 
-  .page-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 26px; flex-wrap:wrap; gap:14px; }
-  .page-head h1{ font-family: var(--font-display); font-size: 26px; font-weight:600; }
-  .page-head p{ color: var(--text-dim); font-size: 13px; margin-top:4px; }
-  .eyebrow{ font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color: var(--gold); margin-bottom:6px; }
+.field{
+    margin-bottom:16px;
+}
 
-  .grid{ display:grid; gap: 18px; }
-  .grid-3{ grid-template-columns: repeat(3, 1fr); }
-  .grid-2{ grid-template-columns: 1.3fr 1fr; }
-  @media (max-width: 900px){ .grid-3, .grid-2{ grid-template-columns: 1fr; } .sidebar{position:relative; height:auto;} #app.active{flex-direction:column;} }
+.field label{
+    display:block;
+    font-size:11.5px;
+    color:var(--text-dim);
+    margin-bottom:6px;
+    text-transform:uppercase;
+    font-family:var(--font-mono);
+}
 
-  .card{
-    background: var(--panel); border:1px solid var(--border); border-radius: var(--radius);
-    padding: 22px;
-  }
+.field input,
+.field select{
+    width:100%;
+    padding:12px 14px;
+    border-radius:8px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:14px;
+    outline:none;
+    transition:.2s ease;
+}
 
-  .balance-card{
-    background: linear-gradient(160deg, var(--panel-3), var(--panel));
-    border: 1px solid var(--border);
-    position: relative; overflow:hidden;
-  }
-  .balance-card::after{
-    content:''; position:absolute; top:-40%; right:-15%; width:260px; height:260px; border-radius:50%;
-    background: radial-gradient(circle, rgba(201,162,39,0.10), transparent 70%);
-  }
-  .balance-label{ font-family: var(--font-mono); font-size:11px; color: var(--text-dim); letter-spacing:0.05em; text-transform:uppercase; margin-bottom:10px; }
-  .balance-amount{ font-family: var(--font-display); font-size: 42px; font-weight:600; letter-spacing:-0.01em; }
-  .balance-amount .cur{ font-size:20px; color: var(--text-dim); font-weight:500; margin-right:4px; }
-  .balance-sub{ font-size:12.5px; color: var(--text-faint); margin-top:8px; font-family: var(--font-mono); }
-  .quick-actions{ display:flex; gap:10px; margin-top:20px; }
-  .qa-btn{
-    flex:1; padding: 10px; border-radius:8px; border:1px solid var(--border); background: var(--panel-2);
-    color: var(--text); font-size:12.5px; font-weight:600; cursor:pointer; text-align:center;
-    display:flex; flex-direction:column; align-items:center; gap:5px; transition: all 0.15s;
-  }
-  .qa-btn:hover{ border-color: var(--gold); color: var(--gold); }
-  .qa-btn svg{ width:16px; height:16px; }
+.field input::placeholder{
+    color:var(--text-faint);
+}
 
-  .stat-row{ display:flex; justify-content:space-between; align-items:center; padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
-  .stat-row:last-child{ border-bottom:none; }
-  .stat-row .s-label{ font-size:12.5px; color: var(--text-dim); }
-  .stat-row .s-value{ font-family: var(--font-mono); font-size:13px; font-weight:600; }
+.field input:focus,
+.field select:focus{
+    border-color:var(--gold);
+    box-shadow:0 0 0 3px var(--gold-soft);
+}
 
-  .section-title{ font-family:var(--font-display); font-size:16px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; }
-  .link-sm{ font-size:11.5px; color: var(--teal); cursor:pointer; font-family: var(--font-mono); font-weight:500; }
+.field input:disabled,
+.field select:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
 
-  .ledger{ width:100%; border-collapse: collapse; }
-  .ledger thead th{
-    text-align:left; font-family: var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em;
-    color: var(--text-faint); padding: 0 12px 10px; border-bottom: 1px solid var(--border);
-  }
-  .ledger tbody tr{ border-bottom: 1px solid var(--border-soft); transition: background 0.12s; }
-  .ledger tbody tr:hover{ background: var(--panel-2); }
-  .ledger tbody td{ padding: 13px 12px; font-size: 13px; vertical-align:middle; }
-  .amt{ font-family: var(--font-mono); font-weight:600; }
-  .amt.out{ color: var(--rose); }
-  .amt.in{ color: var(--teal); }
-  .counterparty{ font-weight:600; font-size:13px; }
-  .counterparty-sub{ font-size:11px; color:var(--text-faint); font-family:var(--font-mono); }
-  .ts{ color: var(--text-faint); font-size:12px; font-family: var(--font-mono); }
+.btn{
+    width:100%;
+    padding:13px;
+    border-radius:8px;
+    background:var(--gold);
+    color:#151107;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    font-family:var(--font-body);
+    transition:.2s ease;
+}
 
-  .form-card{ max-width: 480px; }
-  .amount-input-wrap{ position:relative; }
-  .amount-input-wrap .cur-prefix{
-    position:absolute; left:14px; top:50%; transform:translateY(-50%); color: var(--text-dim); font-family: var(--font-mono); font-size:14px;
-  }
-  .amount-input-wrap input{ padding-left: 42px; font-family: var(--font-mono); font-size:16px; }
-  .note-box{ background: var(--gold-soft); border:1px solid rgba(201,162,39,0.3); border-radius:8px; padding:12px 14px; font-size:12px; color: var(--gold); line-height:1.5; margin-top:6px; }
-  .note-box.rose{ background: var(--rose-soft); border-color: rgba(228,87,46,0.3); color: var(--rose); }
+.btn:hover{
+    background:#DDB62E;
+    transform:translateY(-1px);
+}
 
-  .kpi-row{ display:grid; grid-template-columns: repeat(4,1fr); gap:14px; margin-bottom:22px; }
-  @media (max-width: 900px){ .kpi-row{ grid-template-columns: repeat(2,1fr);} }
-  .kpi{ background: var(--panel); border:1px solid var(--border); border-radius: var(--radius); padding:18px; }
-  .kpi .kpi-label{ font-family: var(--font-mono); font-size:10.5px; color: var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; }
-  .kpi .kpi-value{ font-family: var(--font-display); font-size:26px; font-weight:600; margin-top:6px; }
+.btn:active{
+    transform:translateY(0);
+}
 
-  .flag-row{ display:flex; align-items:center; justify-content:space-between; padding:13px 0; border-bottom:1px solid var(--border-soft); gap:12px; }
-  .flag-row:last-child{ border-bottom:none; }
-  .flag-left{ display:flex; align-items:center; gap:12px; }
-  .flag-icon{ width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .flag-icon.rose{ background: var(--rose-soft); color:var(--rose); }
-  .flag-title{ font-size:13px; font-weight:600; }
-  .flag-sub{ font-size:11.5px; color: var(--text-faint); font-family: var(--font-mono); margin-top:2px; }
+.btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+    transform:none;
+}
 
-  .chart-card{ padding-bottom: 16px; }
-  .chart-wrap{ position:relative; height:260px; margin-top:16px; }
-  .chart-wrap.small{ height:220px; }
-  .chart-caption{ font-size:11.5px; color: var(--text-faint); font-family: var(--font-mono); margin-top:10px; text-align:center; }
+.btn-sm{
+    padding:8px 14px;
+    font-size:12px;
+    width:auto;
+}
 
-  .badge-role{ font-family: var(--font-mono); font-size:10px; padding:3px 8px; border-radius:5px; border:1px solid var(--border); color:var(--text-dim); }
+/* =========================
+   MODAL
+========================= */
 
-  ::-webkit-scrollbar{ width:9px; height:9px; }
-  ::-webkit-scrollbar-track{ background: var(--bg); }
-  ::-webkit-scrollbar-thumb{ background: var(--border); border-radius:99px; }
+.modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:50;
+    background:rgba(6,8,11,.72);
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    backdrop-filter:blur(2px);
+}
 
-  @media (prefers-reduced-motion: reduce){
-    *{ animation-duration: 0.001s !important; transition-duration: 0.001s !important; }
-  }
+.modal-overlay.active{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:420px;
+    max-height:90vh;
+    overflow-y:auto;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:34px;
+    position:relative;
+    box-shadow:0 30px 70px rgba(0,0,0,.5);
+}
+
+.modal-close{
+    position:absolute;
+    top:16px;
+    right:16px;
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    background:transparent;
+}
+
+.modal-close:hover{
+    color:var(--text);
+    background:var(--panel-2);
+}
+
+/* =========================
+   APP SHELL
+========================= */
+
+#app{
+    display:none;
+    min-height:100vh;
+}
+
+#app.active{
+    display:flex;
+}
+
+.sidebar{
+    width:240px;
+    flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:22px 16px;
+    position:sticky;
+    top:0;
+    height:100vh;
+}
+
+.nav-group-label{
+    font-family:var(--font-mono);
+    font-size:10px;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    padding:0 12px;
+    margin:18px 0 8px;
+}
+
+.nav-item{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:10px 12px;
+    border-radius:8px;
+    color:var(--text-dim);
+    font-size:13.5px;
+    font-weight:500;
+    cursor:pointer;
+    margin-bottom:2px;
+    transition:.15s ease;
+}
+
+.nav-item:hover{
+    background:var(--panel-2);
+    color:var(--text);
+}
+
+.nav-item.active{
+    background:var(--gold-soft);
+    color:var(--gold);
+}
+
+.sidebar-foot{
+    margin-top:auto;
+    padding:14px 12px 4px;
+    border-top:1px solid var(--border-soft);
+}
+
+.user-pill{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.avatar{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    background:linear-gradient(155deg,var(--teal),#12524b);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--font-display);
+    font-weight:700;
+}
+
+.logout-link{
+    font-size:11.5px;
+    color:var(--text-faint);
+    margin-top:10px;
+    cursor:pointer;
+    display:inline-block;
+}
+
+.logout-link:hover{
+    color:var(--rose);
+}
+
+.main{
+    flex:1;
+    padding:30px 38px 60px;
+    max-width:1400px;
+    width:100%;
+}
+
+/* =========================
+   VIEWS
+========================= */
+
+.view{
+    display:none !important;
+}
+
+.view.active{
+    display:block !important;
+}
+
+.page-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+    gap:14px;
+}
+
+.page-head h1{
+    font-family:var(--font-display);
+    font-size:26px;
+    font-weight:600;
+}
+
+.page-head p{
+    color:var(--text-dim);
+    font-size:13px;
+    margin-top:4px;
+}
+
+.eyebrow{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:6px;
+}
+
+/* =========================
+   GRID
+========================= */
+
+.grid{
+    display:grid;
+    gap:18px;
+}
+
+.grid-2{
+    grid-template-columns:1.3fr 1fr;
+}
+
+.grid-equal{
+    grid-template-columns:1fr 1fr;
+}
+
+/* =========================
+   CARDS
+========================= */
+
+.card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:22px;
+}
+
+.balance-card{
+    background:linear-gradient(
+        160deg,
+        var(--panel-3),
+        var(--panel)
+    );
+    border:1px solid var(--border);
+}
+
+.balance-label{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    margin-bottom:10px;
+}
+
+.balance-amount{
+    font-family:var(--font-display);
+    font-size:38px;
+    font-weight:600;
+}
+
+.balance-amount .cur{
+    font-size:18px;
+    color:var(--text-dim);
+    margin-right:4px;
+}
+
+.balance-sub{
+    font-size:12.5px;
+    color:var(--text-faint);
+    margin-top:8px;
+    font-family:var(--font-mono);
+}
+
+.quick-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+}
+
+.qa-btn{
+    flex:1;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--panel-2);
+    color:var(--text);
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:5px;
+    transition:.15s ease;
+}
+
+.qa-btn:hover{
+    border-color:var(--gold);
+    color:var(--gold);
+}
+
+/* =========================
+   STATS
+========================= */
+
+.stat-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    padding:10px 0;
+    border-bottom:1px solid var(--border-soft);
+}
+
+.stat-row:last-child{
+    border-bottom:none;
+}
+
+.stat-row .s-label{
+    font-size:12px;
+    color:var(--text-dim);
+}
+
+.stat-row .s-value{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    font-weight:600;
+    text-align:right;
+}
+
+/* =========================
+   KPIs
+========================= */
+
+.kpi-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:18px;
+}
+
+.kpi-row-6{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:12px;
+    margin-bottom:18px;
+}
+
+.kpi{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px;
+}
+
+.kpi .kpi-label{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--text-faint);
+    text-transform:uppercase;
+}
+
+.kpi .kpi-value{
+    font-family:var(--font-display);
+    font-size:22px;
+    font-weight:600;
+    margin-top:6px;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.table-scroll{
+    width:100%;
+    overflow-x:auto;
+}
+
+.ledger{
+    width:100%;
+    border-collapse:collapse;
+    min-width:650px;
+}
+
+.ledger thead th{
+    text-align:left;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    padding:0 12px 10px;
+    border-bottom:1px solid var(--border);
+}
+
+.ledger tbody tr{
+    border-bottom:1px solid var(--border-soft);
+}
+
+.ledger tbody tr:hover{
+    background:var(--panel-2);
+}
+
+.ledger tbody td{
+    padding:12px;
+    font-size:13px;
+}
+
+.amt{
+    font-family:var(--font-mono);
+    font-weight:600;
+}
+
+.amt.out{
+    color:var(--rose);
+}
+
+.amt.in{
+    color:var(--teal);
+}
+
+.ts{
+    color:var(--text-faint);
+    font-size:11.5px;
+    font-family:var(--font-mono);
+}
+
+/* =========================
+   CHARTS
+========================= */
+
+.chart-wrap{
+    position:relative;
+    height:240px;
+    margin-top:14px;
+}
+
+.chart-wrap.small{
+    height:200px;
+}
+
+/* =========================
+   OTHER
+========================= */
+
+.section-title{
+    font-family:var(--font-display);
+    font-size:15px;
+    font-weight:600;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.note-box{
+    background:var(--gold-soft);
+    border:1px solid rgba(201,162,39,.3);
+    border-radius:8px;
+    padding:12px;
+    font-size:12px;
+    color:var(--gold);
+}
+
+.note-box.rose{
+    background:var(--rose-soft);
+    border-color:rgba(228,87,46,.3);
+    color:var(--rose);
+}
+
+.hidden{
+    display:none !important;
+}
+
+.loading-text{
+    color:var(--text-faint);
+    font-family:var(--font-mono);
+    font-size:11px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media(max-width:1100px){
+    .kpi-row-6{
+        grid-template-columns:repeat(3,1fr);
+    }
+
+    .main{
+        padding:26px 24px 50px;
+    }
+}
+
+@media(max-width:900px){
+    #app.active{
+        flex-direction:column;
+    }
+
+    .sidebar{
+        position:relative;
+        width:100%;
+        height:auto;
+        border-right:0;
+        border-bottom:1px solid var(--border);
+    }
+
+    .sidebar .brand-mark{
+        margin-bottom:15px;
+    }
+
+    .sidebar-foot{
+        margin-top:18px;
+    }
+
+    .grid-2,
+    .grid-equal{
+        grid-template-columns:1fr;
+    }
+
+    .quick-actions{
+        flex-wrap:wrap;
+    }
+
+    .qa-btn{
+        min-width:30%;
+    }
+}
+
+@media(max-width:700px){
+    .login-card{
+        padding:32px 24px 28px;
+    }
+
+    .main{
+        padding:22px 16px 40px;
+    }
+
+    .kpi-row,
+    .kpi-row-6{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .balance-amount{
+        font-size:32px;
+    }
+
+    .quick-actions{
+        flex-direction:column;
+    }
+
+    .qa-btn{
+        width:100%;
+    }
+
+    .modal-card{
+        padding:28px 22px;
+    }
+}
+
+@media(max-width:430px){
+    .kpi-row,
+    .kpi-row-6{
+        grid-template-columns:1fr;
+    }
+
+    .page-head h1{
+        font-size:23px;
+    }
+}
 </style>
 </head>
+
 <body>
 
-<!-- ============ LOGIN SCREEN ============ -->
+<!-- =========================================================
+     LOGIN SCREEN
+========================================================= -->
+
 <div id="login-screen">
-  <div class="ledger-lines"></div>
-  <div class="login-card">
-    <div class="brand-mark">
-      <div class="brand-glyph">V</div>
-      <div>
-        <div class="brand-name">Vaultline</div>
-        <div class="brand-sub">Core Wallet & Ledger</div>
-      </div>
-    </div>
-    <h1 class="login-title">Welcome back</h1>
-    <p class="login-desc">Sign in to continue to your wallet.</p>
 
-    <div class="field">
-      <label>Email</label>
-      <input type="text" id="login-id" placeholder="Enter your email address" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="login-pass" placeholder="Enter your password" autocomplete="off">
-    </div>
+    <div class="login-card">
 
-    <div style="margin-top:22px;">
-      <button class="btn" onclick="doLogin()">Sign In</button>
+        <div class="brand-mark">
+            <div class="brand-glyph">V</div>
+
+            <div>
+                <div class="brand-name">Vaultline</div>
+                <div class="brand-sub">Core Wallet & Ledger</div>
+            </div>
+        </div>
+
+        <h1 class="login-title">Sign In</h1>
+
+        <p class="login-desc">
+            Access your banking portal.
+        </p>
+
+        <div class="field">
+            <label for="login-id">Email</label>
+            <input
+                type="email"
+                id="login-id"
+                placeholder="name@vaultline.com"
+                autocomplete="username"
+            >
+        </div>
+
+        <div class="field">
+            <label for="login-pass">Password</label>
+            <input
+                type="password"
+                id="login-pass"
+                placeholder="••••••••"
+                autocomplete="current-password"
+            >
+        </div>
+
+        <div
+            id="login-error"
+            class="note-box rose"
+            style="display:none;margin-bottom:12px;"
+        ></div>
+
+        <button
+            class="btn"
+            id="login-btn"
+            onclick="doLogin()"
+        >
+            Authenticate
+        </button>
+
+        <div
+            style="
+                text-align:center;
+                margin-top:16px;
+                font-size:13px;
+                color:var(--text-faint);
+            "
+        >
+            New user?
+
+            <span
+                style="
+                    color:var(--teal);
+                    cursor:pointer;
+                    font-weight:600;
+                "
+                onclick="openSignup()"
+            >
+                Create Wallet
+            </span>
+        </div>
+
     </div>
-    <div class="login-toggle">New here? <span onclick="openSignup()">Create an account</span></div>
-  </div>
 </div>
 
-<!-- ============ SIGNUP MODAL ============ -->
-<div class="modal-overlay" id="signup-overlay">
-  <div class="modal-card">
-    <div class="modal-close" onclick="closeSignup()">✕</div>
-    <div class="brand-mark">
-      <div class="brand-glyph">V</div>
-      <div>
-        <div class="brand-name">Vaultline</div>
-        <div class="brand-sub">Create Account</div>
-      </div>
-    </div>
-    <h1 class="login-title" style="font-size:24px;">Open a wallet</h1>
-    <p class="login-desc">Register once — you'll get a unique Account Number.</p>
 
-    <div class="field">
-      <label>Full Name</label>
-      <input type="text" id="signup-name" placeholder="e.g. Hafsa Fatima">
+<!-- =========================================================
+     SIGNUP MODAL
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="signup-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="signup-title"
+>
+
+    <div class="modal-card">
+
+        <button
+            class="modal-close"
+            onclick="closeSignup()"
+            aria-label="Close registration"
+        >
+            ✕
+        </button>
+
+        <h1
+            class="login-title"
+            id="signup-title"
+            style="font-size:22px;"
+        >
+            Register Wallet
+        </h1>
+
+        <p class="login-desc">
+            Instant account & ledger generation.
+        </p>
+
+        <div class="field">
+            <label for="signup-name">Full Name</label>
+            <input
+                type="text"
+                id="signup-name"
+                placeholder="e.g. Daniya Khan"
+                autocomplete="name"
+            >
+        </div>
+
+        <div class="field">
+            <label for="signup-email">Email</label>
+            <input
+                type="email"
+                id="signup-email"
+                placeholder="user@vaultline.com"
+                autocomplete="email"
+            >
+        </div>
+
+        <div class="field">
+            <label for="signup-pass">Password</label>
+            <input
+                type="password"
+                id="signup-pass"
+                placeholder="Password"
+                autocomplete="new-password"
+            >
+        </div>
+
+        <div class="field">
+            <label for="signup-role">Role</label>
+
+            <select id="signup-role">
+                <option value="Customer">
+                    Customer (50,000 Limit)
+                </option>
+
+                <option value="Merchant">
+                    Merchant (200,000 Limit)
+                </option>
+            </select>
+        </div>
+
+        <div
+            id="signup-error"
+            class="note-box rose"
+            style="display:none;margin-bottom:12px;"
+        ></div>
+
+        <button
+            class="btn"
+            id="signup-btn"
+            onclick="submitSignup()"
+        >
+            Open Account
+        </button>
+
     </div>
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="signup-email" placeholder="you@vaultline.io">
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="signup-pass" placeholder="Create a password">
-    </div>
-    <div class="field">
-      <label>Role</label>
-      <select id="signup-role">
-        <option value="Customer">Customer</option>
-        <option value="Merchant">Merchant</option>
-      </select>
-    </div>
-    <div id="signup-error" class="note-box rose" style="display:none;"></div>
-    <div style="margin-top:18px;">
-      <button class="btn" onclick="submitSignup()">Create Account</button>
-    </div>
-  </div>
 </div>
 
-<!-- ============ APP SHELL ============ -->
+
+<!-- =========================================================
+     APP SHELL
+========================================================= -->
+
 <div id="app">
-  <aside class="sidebar">
-    <div class="brand-mark">
-      <div class="brand-glyph">V</div>
-      <div>
-        <div class="brand-name" style="font-size:16px;">Vaultline</div>
-        <div class="brand-sub">Core Wallet & Ledger</div>
-      </div>
-    </div>
 
-    <div class="nav-group-label" id="nav-group-wallet">Wallet</div>
-    <div class="nav-item nav-customer-only" data-view="dashboard" id="nav-item-dashboard">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14" r="1.4" fill="currentColor" stroke="none"/></svg>
-      Dashboard
-    </div>
-    <div class="nav-item nav-merchant-only" data-view="merchant" id="nav-item-merchant">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h4"/></svg>
-      Merchant Dashboard
-    </div>
-    <div class="nav-item nav-walletuser-only" data-view="send" id="nav-item-send">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h13M12 5l7 7-7 7"/></svg>
-      Send Money
-    </div>
-    <div class="nav-item nav-walletuser-only" data-view="history" id="nav-item-history">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h18M3 12h18M3 19h10"/></svg>
-      Transaction History
-    </div>
+    <!-- SIDEBAR -->
 
-    <div class="nav-group-label nav-admin-only" id="nav-group-admin">Security · Admin</div>
-    <div class="nav-item nav-admin-only" data-view="fraud" id="nav-item-fraud">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>
-      Fraud & Alerts
-    </div>
-    <div class="nav-item nav-admin-only" data-view="analytics" id="nav-item-analytics">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M11 19V4M18 19v-7"/></svg>
-      Analytics
-    </div>
+    <aside class="sidebar">
 
-    <div class="sidebar-foot">
-      <div class="user-pill">
-        <div class="avatar" id="side-avatar">H</div>
-        <div>
-          <div class="u-name" id="side-name">—</div>
-          <div class="u-role" id="side-role">—</div>
-        </div>
-      </div>
-      <div class="logout-link" onclick="doLogout()">Sign out →</div>
-    </div>
-  </aside>
+        <div class="brand-mark">
 
-  <main class="main">
+            <div class="brand-glyph">V</div>
 
-    <!-- ===== DASHBOARD (Customer) ===== -->
-    <section class="view active" id="view-dashboard">
-      <div class="page-head">
-        <div>
-          <div class="eyebrow">Wallet Overview</div>
-          <h1>Good to see you</h1>
-          <p>Here's where your balance and daily activity stand right now.</p>
-        </div>
-      </div>
+            <div>
+                <div
+                    class="brand-name"
+                    style="font-size:16px;"
+                >
+                    Vaultline
+                </div>
 
-      <div class="grid grid-2" style="margin-bottom:18px;">
-        <div class="card balance-card">
-          <div class="balance-label">Available Balance</div>
-          <div class="balance-amount"><span class="cur">PKR</span><span id="bal-amount">0</span></div>
-          <div class="balance-sub" id="account-sub">Account Number · —</div>
-          <div class="quick-actions">
-            <div class="qa-btn" onclick="openDeposit()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-              Deposit
+                <div class="brand-sub">
+                    Core Platform
+                </div>
             </div>
-            <div class="qa-btn" onclick="switchView('send')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h13M12 5l7 7-7 7"/></svg>
-              Transfer
+
+        </div>
+
+
+        <!-- CUSTOMER / MERCHANT NAV -->
+
+        <div
+            class="nav-group-label"
+            id="nav-group-wallet"
+        >
+            Portal
+        </div>
+
+        <div
+            class="nav-item nav-customer-only"
+            data-view="dashboard"
+            id="nav-item-dashboard"
+        >
+            Dashboard
+        </div>
+
+        <div
+            class="nav-item nav-merchant-only"
+            data-view="merchant"
+            id="nav-item-merchant"
+        >
+            Merchant Hub
+        </div>
+
+        <div
+            class="nav-item nav-walletuser-only"
+            data-view="send"
+            id="nav-item-send"
+        >
+            Send Funds
+        </div>
+
+        <div
+            class="nav-item nav-walletuser-only"
+            data-view="history"
+            id="nav-item-history"
+        >
+            Ledger Records
+        </div>
+
+
+        <!-- ADMIN NAV -->
+
+        <div
+            class="nav-group-label nav-admin-only"
+            id="nav-group-admin"
+        >
+            Governance
+        </div>
+
+        <div
+            class="nav-item nav-admin-only"
+            data-view="fraud"
+            id="nav-item-fraud"
+        >
+            Fraud Center
+        </div>
+
+        <div
+            class="nav-item nav-admin-only"
+            data-view="security"
+            id="nav-item-security"
+        >
+            Security Logs
+        </div>
+
+        <div
+            class="nav-item nav-admin-only"
+            data-view="analytics"
+            id="nav-item-analytics"
+        >
+            Platform Analytics
+        </div>
+
+
+        <!-- USER -->
+
+        <div class="sidebar-foot">
+
+            <div class="user-pill">
+
+                <div
+                    class="avatar"
+                    id="side-avatar"
+                >
+                    H
+                </div>
+
+                <div>
+
+                    <div
+                        style="font-size:13px;font-weight:600;"
+                        id="side-name"
+                    >
+                        —
+                    </div>
+
+                    <div
+                        style="
+                            font-size:11px;
+                            color:var(--text-faint);
+                            font-family:var(--font-mono);
+                        "
+                        id="side-role"
+                    >
+                        —
+                    </div>
+
+                </div>
             </div>
-            <div class="qa-btn" onclick="switchView('history')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h18M3 12h18M3 19h10"/></svg>
-              History
+
+            <div
+                class="logout-link"
+                onclick="doLogout()"
+            >
+                Sign Out →
             </div>
-          </div>
+
         </div>
 
-        <div class="card">
-          <div class="stat-row">
-            <span class="s-label">Daily transfer limit</span>
-            <span class="s-value" id="limit-text">0 PKR</span>
-          </div>
-          <div class="stat-row" style="margin-top:14px;">
-            <span class="s-label">Account status</span>
-            <span class="seal ok" id="account-status-seal">—</span>
-          </div>
-          <div class="stat-row">
-            <span class="s-label">Role</span>
-            <span class="badge-role" id="dash-role">Customer</span>
-          </div>
-        </div>
-      </div>
+    </aside>
 
-      <div class="card">
-        <div class="section-title">Recent Ledger Entries <span class="link-sm" onclick="switchView('history')">View full history →</span></div>
-        <table class="ledger">
-          <thead><tr><th>Transaction</th><th>Account Number</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
-          <tbody id="recent-ledger-body"></tbody>
-        </table>
-      </div>
-    </section>
 
-    <!-- ===== SEND MONEY ===== -->
-    <section class="view" id="view-send">
-      <div class="page-head">
-        <div>
-          <div class="eyebrow">Transfer Funds</div>
-          <h1>Send Money</h1>
-          <p>Transfers are validated instantly against your balance and daily limit.</p>
-        </div>
-      </div>
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
 
-      <div class="grid grid-2">
-        <div class="card form-card">
-          <div class="field">
-            <label>Recipient Account Number</label>
-            <input type="text" id="send-to" placeholder="e.g. VL-20881" oninput="updateTransferChecklist()">
-          </div>
-          <div class="field">
-            <label>Amount (PKR)</label>
-            <div class="amount-input-wrap">
-              <span class="cur-prefix">₨</span>
-              <input type="number" id="send-amount" placeholder="0.00" oninput="updateTransferChecklist()">
+    <main class="main">
+
+
+        <!-- =================================================
+             CUSTOMER DASHBOARD
+        ================================================== -->
+
+        <section
+            class="view"
+            id="view-dashboard"
+            data-role="Customer"
+        >
+
+            <div class="page-head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        Customer Wallet Overview
+                    </div>
+
+                    <h1 id="cust-welcome-title">
+                        Welcome
+                    </h1>
+
+                    <p>
+                        Real-time financial status from the ledger.
+                    </p>
+
+                </div>
+
             </div>
-          </div>
-          <div class="note-box" id="send-hint">Enter a recipient account number and amount to send.</div>
-          <div style="margin-top:18px;">
-            <button class="btn" onclick="doTransfer()">Review & Send</button>
-          </div>
-        </div>
 
-        <div class="card">
-          <div class="section-title">How this transfer is checked</div>
-          <div class="stat-row"><span class="s-label">1 · Balance sufficiency</span><span class="seal pending" id="check-balance">Waiting</span></div>
-          <div class="stat-row"><span class="s-label">2 · Daily limit</span><span class="seal pending" id="check-limit">Waiting</span></div>
-          <div class="stat-row"><span class="s-label">3 · High-value threshold (100,000)</span><span class="seal pending" id="check-threshold">Waiting</span></div>
-          <div class="stat-row"><span class="s-label">4 · Unique Transaction ID</span><span class="seal ok">Generated on send</span></div>
-          <div class="stat-row"><span class="s-label">5 · Ledger entry</span><span class="seal ok">Permanent</span></div>
-        </div>
-      </div>
-    </section>
 
-    <!-- ===== HISTORY ===== -->
-    <section class="view" id="view-history">
-      <div class="page-head">
-        <div>
-          <div class="eyebrow">Immutable Ledger</div>
-          <h1>Transaction History</h1>
-          <p>Every entry here is permanent — nothing in the ledger can be deleted.</p>
-        </div>
-      </div>
+            <!-- CUSTOMER KPIs -->
 
-      <div class="card">
-        <table class="ledger">
-          <thead><tr><th>Transaction</th><th>Account Number</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
-          <tbody id="full-ledger-body"></tbody>
-        </table>
-      </div>
-    </section>
+            <div class="kpi-row">
 
-    <!-- ===== MERCHANT ===== -->
-    <section class="view" id="view-merchant">
-      <div class="page-head">
-        <div>
-          <div class="eyebrow">Merchant Account</div>
-          <h1>Merchant Dashboard</h1>
-          <p>Track incoming customer payments.</p>
-        </div>
-      </div>
+                <div class="kpi">
+                    <div class="kpi-label">
+                        Money In (Received)
+                    </div>
 
-      <div class="grid grid-2" style="margin-bottom:18px;">
-        <div class="card balance-card">
-            <div class="balance-label">Available Balance</div>
-            <div class="balance-amount"><span class="cur">PKR</span><span id="merchant-bal-amount">0</span></div>
-            <div class="balance-sub">Current spendable balance</div>
-        </div>
-        <div class="card balance-card">
-            <div class="balance-label">Total Payments Received</div>
-            <div class="balance-amount"><span class="cur">PKR</span><span id="merchant-total">0</span></div>
-            <div class="balance-sub">Lifetime total from customers — never decreases</div>
-        </div>
-      </div>
+                    <div
+                        class="kpi-value"
+                        style="color:var(--teal);"
+                        id="cust-kpi-in"
+                    >
+                        PKR 0
+                    </div>
+                </div>
 
-      <div class="card">
-        <div class="section-title">Recent Customer Payments</div>
-        <table class="ledger">
-          <thead><tr><th>Customer</th><th>Account Number</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
-          <tbody id="merchant-ledger-body"></tbody>
-        </table>
-      </div>
-    </section>
+                <div class="kpi">
+                    <div class="kpi-label">
+                        Money Out (Sent)
+                    </div>
 
-    <!-- ===== FRAUD / ADMIN ===== -->
-    <section class="view" id="view-fraud">
-      <div class="page-head">
-        <div>
-          <div class="eyebrow">Security Monitoring · Admin Only</div>
-          <h1>Fraud & Alerts</h1>
-          <p>Live rule triggers across the entire platform, pulled from the database.</p>
-        </div>
-      </div>
+                    <div
+                        class="kpi-value"
+                        style="color:var(--rose);"
+                        id="cust-kpi-out"
+                    >
+                        PKR 0
+                    </div>
+                </div>
 
-      <div class="kpi-row">
-        <div class="kpi"><div class="kpi-label">Total Transactions</div><div class="kpi-value" id="kpi-total-txns">0</div></div>
-        <div class="kpi"><div class="kpi-label">Total Volume (PKR)</div><div class="kpi-value" id="kpi-total-volume">0</div></div>
-        <div class="kpi"><div class="kpi-label">Flagged Transactions</div><div class="kpi-value" id="kpi-total-flags">0</div></div>
-        <div class="kpi"><div class="kpi-label">Locked Accounts</div><div class="kpi-value" id="kpi-locked">0</div></div>
-      </div>
+                <div class="kpi">
+                    <div class="kpi-label">
+                        Total Transactions
+                    </div>
 
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="section-title">Flagged Activity</div>
-          <div id="flag-list"></div>
-        </div>
-        <div class="card chart-card">
-          <div class="section-title">Alerts by Risk Level</div>
-          <div class="chart-wrap small"><canvas id="chart-risk"></canvas></div>
-        </div>
-      </div>
-    </section>
+                    <div
+                        class="kpi-value"
+                        id="cust-kpi-count"
+                    >
+                        0
+                    </div>
+                </div>
 
-    <!-- ===== ANALYTICS ===== -->
-    <section class="view" id="view-analytics">
-      <div class="page-head">
-        <div>
-          <div class="eyebrow">Enterprise Reporting · Admin Only</div>
-          <h1>Analytics</h1>
-          <p>Platform-wide transaction data from the last 7 days.</p>
-        </div>
-      </div>
+                <div class="kpi">
+                    <div class="kpi-label">
+                        Pending / Flagged
+                    </div>
 
-      <div class="card chart-card" style="margin-bottom:18px;">
-        <div class="section-title">Daily Transaction Volume (Last 7 Days)</div>
-        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
-        <div class="chart-caption" id="caption-daily"></div>
-      </div>
+                    <div
+                        class="kpi-value"
+                        style="color:var(--gold);"
+                        id="cust-kpi-flags"
+                    >
+                        0
+                    </div>
+                </div>
 
-      <div class="grid grid-2">
-        <div class="card chart-card">
-          <div class="section-title">Transaction Type Breakdown</div>
-          <div class="chart-wrap small"><canvas id="chart-type"></canvas></div>
-          <div class="chart-caption" id="caption-type"></div>
-        </div>
-        <div class="card chart-card">
-          <div class="section-title">Transaction Count by Day</div>
-          <div class="chart-wrap small"><canvas id="chart-count"></canvas></div>
-        </div>
-      </div>
-    </section>
+            </div>
 
-  </main>
+
+            <!-- BALANCE + ACCOUNT INFO -->
+
+            <div
+                class="grid grid-2"
+                style="margin-bottom:18px;"
+            >
+
+                <div class="card balance-card">
+
+                    <div class="balance-label">
+                        Available Balance
+                    </div>
+
+                    <div class="balance-amount">
+
+                        <span class="cur">
+                            PKR
+                        </span>
+
+                        <span id="bal-amount">
+                            0
+                        </span>
+
+                    </div>
+
+                    <div
+                        class="balance-sub"
+                        id="account-sub"
+                    >
+                        Account Number · —
+                    </div>
+
+                    <div class="quick-actions">
+
+                        <div
+                            class="qa-btn"
+                            onclick="openDeposit()"
+                        >
+                            Deposit Cash
+                        </div>
+
+                        <div
+                            class="qa-btn"
+                            onclick="safeSwitchView('send')"
+                        >
+                            Transfer Funds
+                        </div>
+
+                        <div
+                            class="qa-btn"
+                            onclick="safeSwitchView('history')"
+                        >
+                            Audit History
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="section-title">
+                        Account Information
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            Account Holder
+                        </span>
+
+                        <span
+                            class="s-value"
+                            id="info-name"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            Registered Email
+                        </span>
+
+                        <span
+                            class="s-value"
+                            id="info-email"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            Daily Limit
+                        </span>
+
+                        <span
+                            class="s-value"
+                            id="limit-text"
+                        >
+                            0 PKR
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            Account Status
+                        </span>
+
+                        <!-- IMPORTANT:
+                             ID remains permanently on outer wrapper.
+                             JavaScript will NEVER replace this element.
+                        -->
+
+                        <span
+                            id="account-status-seal"
+                            class="seal ok"
+                        >
+                            Active
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER CHART + RECENT -->
+
+            <div
+                class="grid grid-equal"
+                style="margin-bottom:18px;"
+            >
+
+                <div class="card">
+
+                    <div class="section-title">
+                        Cashflow Distribution
+                    </div>
+
+                    <div class="chart-wrap small">
+                        <canvas id="chart-cust-flow"></canvas>
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="section-title">
+                        Recent Transactions
+                    </div>
+
+                    <div class="table-scroll">
+
+                        <table class="ledger">
+
+                            <thead>
+                                <tr>
+                                    <th>Counterparty</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="recent-ledger-body">
+                                <tr>
+                                    <td colspan="3">
+                                        <span class="loading-text">
+                                            No transactions loaded.
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             SEND MONEY
+        ================================================== -->
+
+        <section
+            class="view"
+            id="view-send"
+            data-role="Customer,Merchant"
+        >
+
+            <div class="page-head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        ACID Transaction Execution
+                    </div>
+
+                    <h1>
+                        Send Money
+                    </h1>
+
+                    <p>
+                        Instant transfer validated against system
+                        settings and limits.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="grid grid-2">
+
+                <div class="card">
+
+                    <div class="field">
+
+                        <label for="send-to">
+                            Recipient Account Number
+                        </label>
+
+                        <input
+                            type="text"
+                            id="send-to"
+                            placeholder="e.g. VL-10493"
+                            oninput="updateTransferChecklist()"
+                        >
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="send-amount">
+                            Amount (PKR)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="send-amount"
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                            oninput="updateTransferChecklist()"
+                        >
+
+                    </div>
+
+
+                    <div
+                        class="note-box"
+                        id="send-hint"
+                        style="margin-bottom:14px;"
+                    >
+                        Enter transfer details to begin transaction
+                        validation.
+                    </div>
+
+
+                    <button
+                        class="btn"
+                        id="transfer-btn"
+                        onclick="doTransfer()"
+                    >
+                        Authorize & Send
+                    </button>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="section-title">
+                        Automated Validation Pipeline
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            1 · Balance Check
+                        </span>
+
+                        <span
+                            class="seal pending"
+                            id="check-balance"
+                        >
+                            Waiting
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            2 · Daily Limit Compliance
+                        </span>
+
+                        <span
+                            class="seal pending"
+                            id="check-limit"
+                        >
+                            Waiting
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            3 · High Value Threshold (>100k)
+                        </span>
+
+                        <span
+                            class="seal pending"
+                            id="check-threshold"
+                        >
+                            Waiting
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            4 · Receiver Status Check
+                        </span>
+
+                        <span class="seal ok">
+                            Enforced
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             HISTORY
+        ================================================== -->
+
+        <section
+            class="view"
+            id="view-history"
+            data-role="Customer,Merchant"
+        >
+
+            <div class="page-head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        Audit Trail
+                    </div>
+
+                    <h1>
+                        Transaction History
+                    </h1>
+
+                    <p>
+                        vw_TransactionAuditSummary immutable ledger
+                        entries.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="table-scroll">
+
+                    <table class="ledger">
+
+                        <thead>
+
+                            <tr>
+                                <th>Transaction Details</th>
+                                <th>Counterparty Account</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="full-ledger-body">
+
+                            <tr>
+                                <td colspan="5">
+                                    <span class="loading-text">
+                                        No ledger records loaded.
+                                    </span>
+                                </td>
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MERCHANT HUB
+        ================================================== -->
+
+        <section
+            class="view"
+            id="view-merchant"
+            data-role="Merchant"
+        >
+
+            <div class="page-head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        Merchant Operating Center
+                    </div>
+
+                    <h1 id="merch-welcome-title">
+                        Welcome Merchant
+                    </h1>
+
+                    <p>
+                        Commercial incoming settlement pipeline.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="kpi-row">
+
+                <div class="kpi">
+
+                    <div class="kpi-label">
+                        Total Revenue
+                    </div>
+
+                    <div
+                        class="kpi-value"
+                        style="color:var(--teal);"
+                        id="merch-kpi-rev"
+                    >
+                        PKR 0
+                    </div>
+
+                </div>
+
+
+                <div class="kpi">
+
+                    <div class="kpi-label">
+                        Today's Sales
+                    </div>
+
+                    <div
+                        class="kpi-value"
+                        id="merch-kpi-today"
+                    >
+                        PKR 0
+                    </div>
+
+                </div>
+
+
+                <div class="kpi">
+
+                    <div class="kpi-label">
+                        Transactions Count
+                    </div>
+
+                    <div
+                        class="kpi-value"
+                        id="merch-kpi-txns"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+
+                <div class="kpi">
+
+                    <div class="kpi-label">
+                        Average Ticket Size
+                    </div>
+
+                    <div
+                        class="kpi-value"
+                        id="merch-kpi-avg"
+                    >
+                        PKR 0
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="grid grid-2"
+                style="margin-bottom:18px;"
+            >
+
+                <div class="card chart-card">
+
+                    <div class="section-title">
+                        Revenue Trajectory (Last 7 Days)
+                    </div>
+
+                    <div class="chart-wrap">
+                        <canvas id="chart-merch-trend"></canvas>
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="section-title">
+                        Merchant Wallet Profile
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            Current Spendable Balance
+                        </span>
+
+                        <span
+                            class="s-value amt in"
+                            id="merch-bal"
+                        >
+                            PKR 0
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            Assigned Account No
+                        </span>
+
+                        <span
+                            class="s-value"
+                            id="merch-acc"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            Commercial Limit
+                        </span>
+
+                        <span
+                            class="s-value"
+                            id="merch-limit"
+                        >
+                            200,000 PKR
+                        </span>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span class="s-label">
+                            Merchant Status
+                        </span>
+
+                        <span class="seal ok">
+                            Active
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="section-title">
+                    Customer Payment Settlements
+                </div>
+
+                <div class="table-scroll">
+
+                    <table class="ledger">
+
+                        <thead>
+
+                            <tr>
+                                <th>Customer Name</th>
+                                <th>Account No</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Timestamp</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="merchant-ledger-body">
+
+                            <tr>
+                                <td colspan="5">
+                                    <span class="loading-text">
+                                        No customer settlements yet.
+                                    </span>
+                                </td>
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             FRAUD CENTER
+        ================================================== -->
+
+        <section
+            class="view"
+            id="view-fraud"
+            data-role="Admin"
+        >
+
+            <div class="page-head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        Fraud Defense System
+                    </div>
+
+                    <h1>
+                        Security & Fraud Monitoring
+                    </h1>
+
+                    <p>
+                        Real-time platform monitoring and audit
+                        control.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="kpi-row-6">
+
+                <div class="kpi">
+                    <div class="kpi-label">Total Users</div>
+                    <div
+                        class="kpi-value"
+                        id="kpi-total-users"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="kpi">
+                    <div class="kpi-label">Active Wallets</div>
+                    <div
+                        class="kpi-value"
+                        id="kpi-active-wallets"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="kpi">
+                    <div class="kpi-label">Total Txns</div>
+                    <div
+                        class="kpi-value"
+                        id="kpi-total-txns"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="kpi">
+                    <div class="kpi-label">Volume (PKR)</div>
+                    <div
+                        class="kpi-value"
+                        id="kpi-total-volume"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="kpi">
+                    <div class="kpi-label">Locked Accounts</div>
+                    <div
+                        class="kpi-value"
+                        style="color:var(--gold);"
+                        id="kpi-locked"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="kpi">
+                    <div class="kpi-label">Flagged Alerts</div>
+                    <div
+                        class="kpi-value"
+                        style="color:var(--rose);"
+                        id="kpi-total-flags"
+                    >
+                        0
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div
+                class="grid grid-2"
+                style="margin-bottom:18px;"
+            >
+
+                <div class="card">
+
+                    <div class="section-title">
+                        Fraud Triggered Alerts
+                    </div>
+
+                    <div class="table-scroll">
+
+                        <table class="ledger">
+
+                            <thead>
+
+                                <tr>
+                                    <th>Alert #</th>
+                                    <th>User</th>
+                                    <th>Risk</th>
+                                    <th>Reason</th>
+                                    <th>Date</th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody id="fraud-table-body">
+
+                                <tr>
+                                    <td colspan="5">
+                                        <span class="loading-text">
+                                            No fraud alerts loaded.
+                                        </span>
+                                    </td>
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="section-title">
+                        Manual Account Recovery
+                    </div>
+
+                    <p
+                        style="
+                            font-size:12px;
+                            color:var(--text-dim);
+                            margin-bottom:12px;
+                        "
+                    >
+                        Reactivate accounts locked by brute force
+                        protection via usp_UnlockAccount.
+                    </p>
+
+                    <div class="field">
+
+                        <label for="unlock-email">
+                            User Email Address
+                        </label>
+
+                        <input
+                            type="email"
+                            id="unlock-email"
+                            placeholder="user@vaultline.com"
+                        >
+
+                    </div>
+
+                    <button
+                        class="btn btn-sm"
+                        id="unlock-btn"
+                        onclick="doUnlockAccount()"
+                    >
+                        Unlock Account
+                    </button>
+
+                    <div
+                        id="unlock-msg"
+                        class="note-box"
+                        style="display:none;margin-top:12px;"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             SECURITY LOGS
+        ================================================== -->
+
+        <section
+            class="view"
+            id="view-security"
+            data-role="Admin"
+        >
+
+            <div class="page-head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        Audit Infrastructure
+                    </div>
+
+                    <h1>
+                        Security Audit Logs
+                    </h1>
+
+                    <p>
+                        Raw security event logs stored in
+                        SecurityLogs table.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="table-scroll">
+
+                    <table class="ledger">
+
+                        <thead>
+
+                            <tr>
+                                <th>Log ID</th>
+                                <th>User</th>
+                                <th>Action Event</th>
+                                <th>Details</th>
+                                <th>Timestamp</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="security-table-body">
+
+                            <tr>
+                                <td colspan="5">
+                                    <span class="loading-text">
+                                        No security events loaded.
+                                    </span>
+                                </td>
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PLATFORM ANALYTICS
+        ================================================== -->
+
+        <section
+            class="view"
+            id="view-analytics"
+            data-role="Admin"
+        >
+
+            <div class="page-head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        Enterprise Reporting
+                    </div>
+
+                    <h1>
+                        Platform Analytics
+                    </h1>
+
+                    <p>
+                        System-wide volume, transaction type
+                        distribution, and fraud risk ratios.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="grid grid-2"
+                style="margin-bottom:18px;"
+            >
+
+                <div class="card chart-card">
+
+                    <div class="section-title">
+                        Daily Transaction Volume (PKR)
+                    </div>
+
+                    <div class="chart-wrap">
+                        <canvas id="chart-daily"></canvas>
+                    </div>
+
+                </div>
+
+
+                <div class="card chart-card">
+
+                    <div class="section-title">
+                        Transaction Types Breakdown
+                    </div>
+
+                    <div class="chart-wrap small">
+                        <canvas id="chart-type"></canvas>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="grid grid-equal">
+
+                <div class="card chart-card">
+
+                    <div class="section-title">
+                        Risk Level Profile
+                    </div>
+
+                    <div class="chart-wrap small">
+                        <canvas id="chart-risk"></canvas>
+                    </div>
+
+                </div>
+
+
+                <div class="card chart-card">
+
+                    <div class="section-title">
+                        Daily Transaction Count
+                    </div>
+
+                    <div class="chart-wrap small">
+                        <canvas id="chart-count"></canvas>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
 </div>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
 
 <script>
-  let currentUser = null;
-  let charts = {};
+"use strict";
 
-  function sealHtml(status){
-    if(status==='Verified' || status==='ok') return '<span class="seal ok">Verified</span>';
-    if(status==='Flagged' || status==='flag') return '<span class="seal flag">Flagged</span>';
-    return '<span class="seal pending">' + status + '</span>';
-  }
+/* =========================================================
+   GLOBAL STATE
+========================================================= */
 
-  function accountStatusHtml(status){
-    if(status === 'Active') return '<span class="seal ok">Active</span>';
-    if(status === 'Locked') return '<span class="seal flag">Locked</span>';
-    if(status === 'Suspended') return '<span class="seal flag">Suspended</span>';
-    return '<span class="seal pending">' + status + '</span>';
-  }
+let currentUser = null;
+let charts = {};
+let requestState = {
+    login: false,
+    signup: false,
+    transfer: false,
+    unlock: false
+};
 
-  // ---------- LOGIN ----------
-  function doLogin(){
-    const email = document.getElementById('login-id').value.trim();
-    const pass = document.getElementById('login-pass').value;
 
-    fetch('/api/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({email, password: pass})
-    })
-    .then(res => res.json())
-    .then(result => {
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
+
+function escapeHtml(value){
+    if(value === null || value === undefined){
+        return "";
+    }
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function numberValue(value){
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+}
+
+
+function formatNumber(value){
+    return numberValue(value).toLocaleString();
+}
+
+
+function formatPKR(value){
+    return "PKR " + formatNumber(value);
+}
+
+
+/* =========================================================
+   STATUS SEAL
+========================================================= */
+
+function sealHtml(status){
+
+    const safeStatus = escapeHtml(status || "Unknown");
+
+    if(
+        status === "Verified" ||
+        status === "Active" ||
+        status === "Normal" ||
+        status === "Sufficient" ||
+        status === "Within Limit" ||
+        status === "Enforced"
+    ){
+        return '<span class="seal ok">' +
+            safeStatus +
+            '</span>';
+    }
+
+    if(
+        status === "Flagged" ||
+        status === "Locked" ||
+        status === "High" ||
+        status === "Fraud Flagged" ||
+        status === "Insufficient" ||
+        status === "Exceeds Limit"
+    ){
+        return '<span class="seal flag">' +
+            safeStatus +
+            '</span>';
+    }
+
+    return '<span class="seal pending">' +
+        safeStatus +
+        '</span>';
+}
+
+
+/*
+ * IMPORTANT:
+ *
+ * We DO NOT replace #account-status-seal anymore.
+ *
+ * This prevents:
+ *
+ * document.getElementById(...)
+ * returning null after the first login.
+ */
+function updateAccountStatus(status){
+
+    const element =
+        document.getElementById("account-status-seal");
+
+    if(!element){
+        return;
+    }
+
+    const safeStatus = status || "Unknown";
+
+    element.className =
+        "seal " +
+        (
+            safeStatus === "Active" ||
+            safeStatus === "Verified"
+                ? "ok"
+                : safeStatus === "Locked" ||
+                  safeStatus === "Flagged"
+                    ? "flag"
+                    : "pending"
+        );
+
+    element.textContent = safeStatus;
+}
+
+
+/* =========================================================
+   API HELPER
+========================================================= */
+
+async function apiRequest(url, options = {}){
+
+    const response = await fetch(url, {
+        ...options,
+        headers:{
+            ...(options.body
+                ? {"Content-Type":"application/json"}
+                : {}),
+            ...(options.headers || {})
+        }
+    });
+
+    let data;
+
+    try{
+        data = await response.json();
+    }catch(error){
+        throw new Error(
+            "Server returned an invalid response."
+        );
+    }
+
+    if(!response.ok){
+        throw new Error(
+            data.error ||
+            data.message ||
+            "Request failed."
+        );
+    }
+
+    return data;
+}
+
+
+/* =========================================================
+   ROLE CONTROL
+========================================================= */
+
+function getAllowedViews(role){
+
+    if(role === "Customer"){
+        return new Set([
+            "dashboard",
+            "send",
+            "history"
+        ]);
+    }
+
+    if(role === "Merchant"){
+        return new Set([
+            "merchant",
+            "send",
+            "history"
+        ]);
+    }
+
+    if(role === "Admin"){
+        return new Set([
+            "fraud",
+            "security",
+            "analytics"
+        ]);
+    }
+
+    return new Set();
+}
+
+
+function isViewAllowed(viewName){
+
+    if(!currentUser){
+        return false;
+    }
+
+    return getAllowedViews(currentUser.role)
+        .has(viewName);
+}
+
+
+/*
+ * This is the important protection against
+ * Customer accidentally seeing Merchant UI.
+ */
+function switchView(name){
+
+    if(!currentUser){
+        return;
+    }
+
+    if(!isViewAllowed(name)){
+        console.warn(
+            "Blocked unauthorized frontend view:",
+            name,
+            "for role:",
+            currentUser.role
+        );
+
+        const allowed =
+            getAllowedViews(currentUser.role);
+
+        const firstAllowed =
+            [...allowed][0];
+
+        if(firstAllowed){
+            switchView(firstAllowed);
+        }
+
+        return;
+    }
+
+    document
+        .querySelectorAll(".view")
+        .forEach(view => {
+            view.classList.remove("active");
+        });
+
+    document
+        .querySelectorAll(".nav-item")
+        .forEach(item => {
+            item.classList.toggle(
+                "active",
+                item.dataset.view === name
+            );
+        });
+
+    const target =
+        document.getElementById("view-" + name);
+
+    if(target){
+        target.classList.add("active");
+    }
+
+    /*
+     * Load only data belonging to this view.
+     */
+    if(name === "history"){
+        loadHistory();
+    }
+
+    if(name === "fraud"){
+        loadFraudAlerts();
+        loadAnalytics();
+    }
+
+    if(name === "security"){
+        loadSecurityLogs();
+    }
+
+    if(name === "merchant"){
+        loadMerchantPayments();
+    }
+
+    if(name === "analytics"){
+        loadAnalytics();
+    }
+
+    window.scrollTo({
+        top:0,
+        behavior:"smooth"
+    });
+}
+
+
+function safeSwitchView(name){
+    switchView(name);
+}
+
+
+/* =========================================================
+   ROLE UI
+========================================================= */
+
+function configureRoleUI(role){
+
+    const isCustomer = role === "Customer";
+    const isMerchant = role === "Merchant";
+    const isAdmin = role === "Admin";
+
+    /*
+     * Hide EVERYTHING first.
+     *
+     * This is important because it prevents a stale
+     * previous role's navigation from remaining visible.
+     */
+
+    document
+        .querySelectorAll(".nav-item")
+        .forEach(element => {
+            element.style.display = "none";
+        });
+
+    document
+        .querySelectorAll(".nav-group-label")
+        .forEach(element => {
+            element.style.display = "none";
+        });
+
+
+    /*
+     * Customer
+     */
+
+    if(isCustomer){
+
+        document
+            .querySelectorAll(".nav-customer-only")
+            .forEach(element => {
+                element.style.display = "";
+            });
+
+        document
+            .querySelectorAll(".nav-walletuser-only")
+            .forEach(element => {
+                element.style.display = "";
+            });
+
+        document
+            .getElementById("nav-group-wallet")
+            .style.display = "";
+
+        return;
+    }
+
+
+    /*
+     * Merchant
+     */
+
+    if(isMerchant){
+
+        document
+            .querySelectorAll(".nav-merchant-only")
+            .forEach(element => {
+                element.style.display = "";
+            });
+
+        document
+            .querySelectorAll(".nav-walletuser-only")
+            .forEach(element => {
+                element.style.display = "";
+            });
+
+        document
+            .getElementById("nav-group-wallet")
+            .style.display = "";
+
+        return;
+    }
+
+
+    /*
+     * Admin
+     */
+
+    if(isAdmin){
+
+        document
+            .querySelectorAll(".nav-admin-only")
+            .forEach(element => {
+                element.style.display = "";
+            });
+
+        document
+            .getElementById("nav-group-admin")
+            .style.display = "";
+
+        return;
+    }
+}
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+async function doLogin(){
+
+    if(requestState.login){
+        return;
+    }
+
+    const email =
+        document.getElementById("login-id")
+            .value
+            .trim();
+
+    const pass =
+        document.getElementById("login-pass")
+            .value;
+
+    const errorBox =
+        document.getElementById("login-error");
+
+    const loginButton =
+        document.getElementById("login-btn");
+
+
+    errorBox.style.display = "none";
+
+    if(!email || !pass){
+
+        errorBox.textContent =
+            "Please enter your email and password.";
+
+        errorBox.style.display = "block";
+
+        return;
+    }
+
+
+    requestState.login = true;
+
+    loginButton.disabled = true;
+    loginButton.textContent = "Authenticating...";
+
+
+    try{
+
+        const result = await apiRequest(
+            "/api/login",
+            {
+                method:"POST",
+                body:JSON.stringify({
+                    email:email,
+                    password:pass
+                })
+            }
+        );
+
+
         if(!result.success){
-            alert(result.error);
-            document.getElementById('login-id').value = '';
-            document.getElementById('login-pass').value = '';
+
+            errorBox.textContent =
+                result.error ||
+                "Authentication failed.";
+
+            errorBox.style.display = "block";
+
             return;
         }
 
-        currentUser = result;
 
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app').classList.add('active');
+        /*
+         * Store fresh user state.
+         */
 
-        document.getElementById('side-name').textContent = result.name;
-        document.getElementById('side-role').textContent = result.role + (result.wallet ? ' · ' + result.wallet.account_no : '');
-        document.getElementById('side-avatar').textContent = result.name.charAt(0);
-        document.getElementById('dash-role').textContent = result.role;
-        document.getElementById('account-status-seal').outerHTML = accountStatusHtml(result.status).replace('<span', '<span id="account-status-seal"');
+        currentUser = {
+            ...result
+        };
+
+
+        /*
+         * Basic user information.
+         */
+
+        document
+            .getElementById("side-name")
+            .textContent = result.name || "User";
+
+        document
+            .getElementById("side-role")
+            .textContent = result.role || "Unknown";
+
+        document
+            .getElementById("side-avatar")
+            .textContent =
+                (result.name || "U")
+                    .charAt(0)
+                    .toUpperCase();
+
+        document
+            .getElementById("info-name")
+            .textContent =
+                result.name || "—";
+
+        document
+            .getElementById("info-email")
+            .textContent =
+                result.email || "—";
+
+
+        /*
+         * FIXED ACCOUNT STATUS.
+         *
+         * No outerHTML replacement.
+         */
+
+        updateAccountStatus(
+            result.status || "Active"
+        );
+
+
+        /*
+         * Wallet.
+         */
 
         if(result.wallet){
             updateWalletUI(result.wallet);
         }
 
-        // Role-based navigation — real access control, not decoration
-        const isCustomer = result.role === 'Customer';
-        const isMerchant = result.role === 'Merchant';
-        const isAdmin = result.role === 'Admin';
 
-        document.querySelectorAll('.nav-customer-only').forEach(el => el.style.display = isCustomer ? '' : 'none');
-        document.querySelectorAll('.nav-merchant-only').forEach(el => el.style.display = isMerchant ? '' : 'none');
-        document.querySelectorAll('.nav-walletuser-only').forEach(el => el.style.display = (isCustomer || isMerchant) ? '' : 'none');
-        document.querySelectorAll('.nav-admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
+        /*
+         * Apply role-based UI BEFORE activating app.
+         */
 
-        if(isAdmin){ loadFraudAlerts(); loadAnalytics(); switchView('fraud'); }
-        else if(isMerchant){ loadMerchantPayments(); switchView('merchant'); }
-        else { loadHistory(); switchView('dashboard'); }
-    })
-    .catch(err => alert('Server error: ' + err));
-  }
+        configureRoleUI(result.role);
 
-  function updateWalletUI(wallet){
-    document.getElementById('bal-amount').textContent = Number(wallet.balance).toLocaleString();
-    document.getElementById('account-sub').textContent = 'Account Number · ' + wallet.account_no;
-    document.getElementById('merchant-bal-amount').textContent = Number(wallet.balance).toLocaleString();
-    document.getElementById('limit-text').textContent = Number(wallet.daily_limit).toLocaleString() + ' PKR';
-  }
 
-  function refreshWallet(){
-    if(!currentUser) return;
-    fetch('/api/wallet/' + currentUser.user_id)
-    .then(res => res.json())
-    .then(result => {
-        if(result.success){
-            currentUser.wallet = result.wallet;
-            updateWalletUI(result.wallet);
+        /*
+         * Hide login and show application.
+         */
+
+        document
+            .getElementById("login-screen")
+            .style.display = "none";
+
+        document
+            .getElementById("app")
+            .classList.add("active");
+
+
+        /*
+         * STRICT ROLE ROUTING.
+         */
+
+        if(result.role === "Admin"){
+
+            switchView("fraud");
+
+        }else if(result.role === "Merchant"){
+
+            document
+                .getElementById("merch-welcome-title")
+                .textContent =
+                "Welcome, " +
+                (result.name || "Merchant");
+
+            switchView("merchant");
+
+        }else if(result.role === "Customer"){
+
+            document
+                .getElementById("cust-welcome-title")
+                .textContent =
+                "Good day, " +
+                (result.name || "Customer");
+
+            switchView("dashboard");
+
+        }else{
+
+            throw new Error(
+                "Unknown account role received from server."
+            );
         }
-    });
-  }
 
-  function doLogout(){
-    currentUser = null;
-    document.getElementById('app').classList.remove('active');
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('login-id').value = '';
-    document.getElementById('login-pass').value = '';
-  }
 
-  // ---------- Signup modal ----------
-  function openSignup(){ document.getElementById('signup-overlay').classList.add('active'); }
-  function closeSignup(){ document.getElementById('signup-overlay').classList.remove('active'); }
+        /*
+         * Load role-specific data.
+         */
 
-  function submitSignup(){
-    const name = document.getElementById('signup-name').value.trim();
-    const email = document.getElementById('signup-email').value.trim();
-    const pass = document.getElementById('signup-pass').value;
-    const role = document.getElementById('signup-role').value;
-    const errBox = document.getElementById('signup-error');
+        if(result.role === "Customer"){
+            loadHistory();
+        }
 
-    if(!name || !email || !pass){
-      errBox.style.display = 'block';
-      errBox.textContent = 'Please fill in name, email, and password.';
-      return;
+        if(result.role === "Merchant"){
+            loadMerchantPayments();
+        }
+
+        if(result.role === "Admin"){
+            loadFraudAlerts();
+            loadSecurityLogs();
+            loadAnalytics();
+        }
+
+
+    }catch(error){
+
+        errorBox.textContent =
+            error.message ||
+            "Unable to connect to server.";
+
+        errorBox.style.display = "block";
+
+    }finally{
+
+        requestState.login = false;
+
+        loginButton.disabled = false;
+        loginButton.textContent = "Authenticate";
     }
+}
 
-    fetch('/api/register', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name, email, password: pass, role})
-    })
-    .then(res => res.json())
-    .then(result => {
-        if(!result.success){
-            errBox.style.display = 'block';
-            errBox.textContent = result.error;
-            return;
-        }
-        errBox.style.display = 'none';
-        alert('Account created! Your Account Number is: ' + result.account_no);
 
-        document.getElementById('signup-name').value = '';
-        document.getElementById('signup-email').value = '';
-        document.getElementById('signup-pass').value = '';
+/* =========================================================
+   WALLET UI
+========================================================= */
 
-        closeSignup();
-    })
-    .catch(err => {
-        errBox.style.display = 'block';
-        errBox.textContent = 'Server error: ' + err;
-    });
-  }
+function updateWalletUI(wallet){
 
-  // ---------- Nav ----------
-  function switchView(name){
-    document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===name));
-    document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id === 'view-'+name));
-    if(name === 'history') loadHistory();
-    if(name === 'fraud'){ loadFraudAlerts(); loadAnalytics(); }
-    if(name === 'merchant') loadMerchantPayments();
-    if(name === 'analytics') loadAnalytics();
-    window.scrollTo({top:0, behavior:'smooth'});
-  }
-  document.querySelectorAll('.nav-item').forEach(item=>{
-    item.addEventListener('click', ()=> switchView(item.dataset.view));
-  });
-
-  // ---------- Deposit ----------
-  function openDeposit(){
-    if(!currentUser || !currentUser.wallet){ alert('Please log in first.'); return; }
-    const amt = prompt('Enter deposit amount (PKR):', '5000');
-    const n = parseFloat(amt);
-    if(!n || n<=0) return;
-
-    fetch('/api/deposit', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({wallet_id: currentUser.wallet.wallet_id, amount: n})
-    })
-    .then(res => res.json())
-    .then(result => {
-        if(!result.success){ alert(result.error); return; }
-        alert('Deposit successful!');
-        refreshWallet();
-        loadHistory();
-    })
-    .catch(err => alert('Server error: ' + err));
-  }
-
-  // ---------- Transfer checklist (live, dynamic) ----------
-  function updateTransferChecklist(){
-    const amt = parseFloat(document.getElementById('send-amount').value);
-    const balEl = document.getElementById('check-balance');
-    const limitEl = document.getElementById('check-limit');
-    const threshEl = document.getElementById('check-threshold');
-
-    if(!amt || amt <= 0 || !currentUser || !currentUser.wallet){
-        balEl.className = 'seal pending'; balEl.textContent = 'Waiting';
-        limitEl.className = 'seal pending'; limitEl.textContent = 'Waiting';
-        threshEl.className = 'seal pending'; threshEl.textContent = 'Waiting';
+    if(!wallet){
         return;
     }
 
-    if(amt <= currentUser.wallet.balance){
-        balEl.className = 'seal ok'; balEl.textContent = 'Sufficient';
-    } else {
-        balEl.className = 'seal flag'; balEl.textContent = 'Insufficient';
+
+    /*
+     * Customer wallet fields.
+     */
+
+    const balanceElement =
+        document.getElementById("bal-amount");
+
+    const accountElement =
+        document.getElementById("account-sub");
+
+    const limitElement =
+        document.getElementById("limit-text");
+
+
+    if(balanceElement){
+        balanceElement.textContent =
+            formatNumber(wallet.balance);
     }
 
-    if(amt <= currentUser.wallet.daily_limit){
-        limitEl.className = 'seal ok'; limitEl.textContent = 'Within limit';
-    } else {
-        limitEl.className = 'seal flag'; limitEl.textContent = 'Exceeds limit';
+    if(accountElement){
+        accountElement.textContent =
+            "Account Number · " +
+            (wallet.account_no || "—");
     }
 
-    if(amt >= 100000){
-        threshEl.className = 'seal flag'; threshEl.textContent = 'Will be flagged';
-    } else {
-        threshEl.className = 'seal ok'; threshEl.textContent = 'Below threshold';
+    if(limitElement){
+        limitElement.textContent =
+            formatNumber(wallet.daily_limit) +
+            " PKR";
     }
-  }
 
-  // ---------- Transfer ----------
-  function doTransfer(){
-    const to = document.getElementById('send-to').value.trim();
-    const amt = parseFloat(document.getElementById('send-amount').value);
-    const hint = document.getElementById('send-hint');
 
-    if(!to){ hint.className='note-box rose'; hint.textContent='Enter a recipient account number.'; return; }
-    if(!amt || amt<=0){ hint.className='note-box rose'; hint.textContent='Enter a valid amount.'; return; }
-    if(!currentUser || !currentUser.wallet){ hint.className='note-box rose'; hint.textContent='Session error — please log in again.'; return; }
+    /*
+     * IMPORTANT:
+     *
+     * Merchant fields are ONLY updated when
+     * currentUser is actually Merchant.
+     */
 
-    fetch('/api/transfer', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            sender_wallet_id: currentUser.wallet.wallet_id,
-            receiver_account_no: to,
-            amount: amt
-        })
-    })
-    .then(res => res.json())
-    .then(result => {
+    if(
+        currentUser &&
+        currentUser.role === "Merchant"
+    ){
+
+        const merchantBalance =
+            document.getElementById("merch-bal");
+
+        const merchantAccount =
+            document.getElementById("merch-acc");
+
+        const merchantLimit =
+            document.getElementById("merch-limit");
+
+
+        if(merchantBalance){
+            merchantBalance.textContent =
+                formatPKR(wallet.balance);
+        }
+
+        if(merchantAccount){
+            merchantAccount.textContent =
+                wallet.account_no || "—";
+        }
+
+        if(merchantLimit){
+            merchantLimit.textContent =
+                formatNumber(wallet.daily_limit) +
+                " PKR";
+        }
+    }
+
+
+    /*
+     * Keep local wallet state fresh.
+     */
+
+    if(currentUser){
+        currentUser.wallet = wallet;
+    }
+
+
+    updateTransferChecklist();
+}
+
+
+/* =========================================================
+   REFRESH WALLET
+========================================================= */
+
+async function refreshWallet(){
+
+    if(!currentUser){
+        return;
+    }
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/wallet/" +
+                encodeURIComponent(
+                    currentUser.user_id
+                )
+            );
+
+        if(result.success && result.wallet){
+
+            currentUser.wallet =
+                result.wallet;
+
+            updateWalletUI(
+                result.wallet
+            );
+        }
+
+    }catch(error){
+
+        console.error(
+            "Wallet refresh failed:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+async function doLogout(){
+
+    try{
+
+        await fetch(
+            "/api/logout",
+            {
+                method:"POST"
+            }
+        );
+
+    }catch(error){
+
+        console.warn(
+            "Logout request failed:",
+            error
+        );
+
+    }finally{
+
+        currentUser = null;
+
+        /*
+         * Destroy all charts.
+         */
+
+        Object.keys(charts)
+            .forEach(destroyChart);
+
+
+        /*
+         * Hide application.
+         */
+
+        document
+            .getElementById("app")
+            .classList.remove("active");
+
+
+        /*
+         * Show login.
+         */
+
+        document
+            .getElementById("login-screen")
+            .style.display = "flex";
+
+
+        /*
+         * Clear login.
+         */
+
+        document
+            .getElementById("login-id")
+            .value = "";
+
+        document
+            .getElementById("login-pass")
+            .value = "";
+
+
+        /*
+         * Reset login error.
+         */
+
+        const loginError =
+            document.getElementById("login-error");
+
+        loginError.style.display = "none";
+
+
+        /*
+         * Reset navigation and views.
+         */
+
+        document
+            .querySelectorAll(".nav-item")
+            .forEach(item => {
+                item.classList.remove("active");
+                item.style.display = "none";
+            });
+
+        document
+            .querySelectorAll(".view")
+            .forEach(view => {
+                view.classList.remove("active");
+            });
+    }
+}
+
+
+/* =========================================================
+   SIGNUP
+========================================================= */
+
+function openSignup(){
+
+    document
+        .getElementById("signup-overlay")
+        .classList.add("active");
+
+    document
+        .getElementById("signup-name")
+        .focus();
+}
+
+
+function closeSignup(){
+
+    document
+        .getElementById("signup-overlay")
+        .classList.remove("active");
+
+    document
+        .getElementById("signup-error")
+        .style.display = "none";
+}
+
+
+async function submitSignup(){
+
+    if(requestState.signup){
+        return;
+    }
+
+    const name =
+        document.getElementById("signup-name")
+            .value
+            .trim();
+
+    const email =
+        document.getElementById("signup-email")
+            .value
+            .trim();
+
+    const pass =
+        document.getElementById("signup-pass")
+            .value;
+
+    const role =
+        document.getElementById("signup-role")
+            .value;
+
+    const errorBox =
+        document.getElementById("signup-error");
+
+    const signupButton =
+        document.getElementById("signup-btn");
+
+
+    errorBox.style.display = "none";
+
+
+    if(!name || !email || !pass){
+
+        errorBox.textContent =
+            "Please fill all details.";
+
+        errorBox.style.display = "block";
+
+        return;
+    }
+
+
+    if(pass.length < 6){
+
+        errorBox.textContent =
+            "Password must contain at least 6 characters.";
+
+        errorBox.style.display = "block";
+
+        return;
+    }
+
+
+    requestState.signup = true;
+
+    signupButton.disabled = true;
+    signupButton.textContent = "Creating Account...";
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/register",
+                {
+                    method:"POST",
+                    body:JSON.stringify({
+                        name:name,
+                        email:email,
+                        password:pass,
+                        role:role
+                    })
+                }
+            );
+
+
         if(!result.success){
-            hint.className='note-box rose';
-            hint.textContent = result.error;
+
+            errorBox.textContent =
+                result.error ||
+                "Unable to create account.";
+
+            errorBox.style.display = "block";
+
             return;
         }
-        hint.className='note-box';
-        hint.textContent = `Transfer of ₨${amt.toLocaleString()} sent to ${to} successfully!`;
-        document.getElementById('send-to').value='';
-        document.getElementById('send-amount').value='';
+
+
+        alert(
+            "Account Created Successfully!\n\n" +
+            "Assigned ID: " +
+            (result.account_no || "Generated")
+        );
+
+
+        /*
+         * Reset registration form.
+         */
+
+        document
+            .getElementById("signup-name")
+            .value = "";
+
+        document
+            .getElementById("signup-email")
+            .value = "";
+
+        document
+            .getElementById("signup-pass")
+            .value = "";
+
+
+        closeSignup();
+
+
+    }catch(error){
+
+        errorBox.textContent =
+            error.message ||
+            "Server error while creating account.";
+
+        errorBox.style.display = "block";
+
+    }finally{
+
+        requestState.signup = false;
+
+        signupButton.disabled = false;
+        signupButton.textContent = "Open Account";
+    }
+}
+
+
+/* =========================================================
+   DEPOSIT
+========================================================= */
+
+async function openDeposit(){
+
+    if(
+        !currentUser ||
+        !currentUser.wallet
+    ){
+        return;
+    }
+
+
+    const amountText =
+        prompt(
+            "Enter deposit amount (PKR):",
+            "5000"
+        );
+
+
+    if(
+        amountText === null ||
+        amountText.trim() === ""
+    ){
+        return;
+    }
+
+
+    const amount =
+        Number(amountText);
+
+
+    if(
+        !Number.isFinite(amount) ||
+        amount <= 0
+    ){
+
+        alert(
+            "Please enter a valid positive amount."
+        );
+
+        return;
+    }
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/deposit",
+                {
+                    method:"POST",
+                    body:JSON.stringify({
+                        wallet_id:
+                            currentUser.wallet.wallet_id,
+                        amount:amount
+                    })
+                }
+            );
+
+
+        if(!result.success){
+
+            alert(
+                result.error ||
+                "Deposit failed."
+            );
+
+            return;
+        }
+
+
+        alert(
+            "Funds deposited successfully into ledger!"
+        );
+
+
+        await refreshWallet();
+
+
+        if(
+            currentUser.role === "Customer" ||
+            currentUser.role === "Merchant"
+        ){
+            loadHistory();
+        }
+
+    }catch(error){
+
+        alert(
+            error.message ||
+            "Deposit request failed."
+        );
+    }
+}
+
+
+/* =========================================================
+   TRANSFER VALIDATION
+========================================================= */
+
+function setChecklist(
+    element,
+    type,
+    text
+){
+
+    if(!element){
+        return;
+    }
+
+    element.className =
+        "seal " + type;
+
+    element.textContent =
+        text;
+}
+
+
+function updateTransferChecklist(){
+
+    const amountElement =
+        document.getElementById(
+            "send-amount"
+        );
+
+    const balEl =
+        document.getElementById(
+            "check-balance"
+        );
+
+    const limitEl =
+        document.getElementById(
+            "check-limit"
+        );
+
+    const threshEl =
+        document.getElementById(
+            "check-threshold"
+        );
+
+
+    const amount =
+        Number(amountElement?.value);
+
+
+    if(
+        !Number.isFinite(amount) ||
+        amount <= 0 ||
+        !currentUser ||
+        !currentUser.wallet
+    ){
+
+        setChecklist(
+            balEl,
+            "pending",
+            "Waiting"
+        );
+
+        setChecklist(
+            limitEl,
+            "pending",
+            "Waiting"
+        );
+
+        setChecklist(
+            threshEl,
+            "pending",
+            "Waiting"
+        );
+
+        return;
+    }
+
+
+    const balance =
+        numberValue(
+            currentUser.wallet.balance
+        );
+
+    const dailyLimit =
+        numberValue(
+            currentUser.wallet.daily_limit
+        );
+
+
+    if(amount <= balance){
+
+        setChecklist(
+            balEl,
+            "ok",
+            "Sufficient"
+        );
+
+    }else{
+
+        setChecklist(
+            balEl,
+            "flag",
+            "Insufficient"
+        );
+    }
+
+
+    if(amount <= dailyLimit){
+
+        setChecklist(
+            limitEl,
+            "ok",
+            "Within Limit"
+        );
+
+    }else{
+
+        setChecklist(
+            limitEl,
+            "flag",
+            "Exceeds Limit"
+        );
+    }
+
+
+    if(amount >= 100000){
+
+        setChecklist(
+            threshEl,
+            "flag",
+            "Fraud Flagged"
+        );
+
+    }else{
+
+        setChecklist(
+            threshEl,
+            "ok",
+            "Normal"
+        );
+    }
+}
+
+
+/* =========================================================
+   TRANSFER
+========================================================= */
+
+async function doTransfer(){
+
+    if(requestState.transfer){
+        return;
+    }
+
+    if(
+        !currentUser ||
+        !currentUser.wallet
+    ){
+        return;
+    }
+
+
+    const to =
+        document
+            .getElementById("send-to")
+            .value
+            .trim();
+
+    const amount =
+        Number(
+            document
+                .getElementById("send-amount")
+                .value
+        );
+
+    const hint =
+        document.getElementById(
+            "send-hint"
+        );
+
+    const button =
+        document.getElementById(
+            "transfer-btn"
+        );
+
+
+    if(!to){
+
+        hint.className =
+            "note-box rose";
+
+        hint.textContent =
+            "Please enter a recipient account number.";
+
+        return;
+    }
+
+
+    if(
+        !Number.isFinite(amount) ||
+        amount <= 0
+    ){
+
+        hint.className =
+            "note-box rose";
+
+        hint.textContent =
+            "Please enter a valid transfer amount.";
+
+        return;
+    }
+
+
+    if(
+        amount >
+        numberValue(
+            currentUser.wallet.balance
+        )
+    ){
+
+        hint.className =
+            "note-box rose";
+
+        hint.textContent =
+            "Insufficient wallet balance.";
+
+        return;
+    }
+
+
+    requestState.transfer = true;
+
+    button.disabled = true;
+    button.textContent = "Processing...";
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/transfer",
+                {
+                    method:"POST",
+                    body:JSON.stringify({
+
+                        sender_wallet_id:
+                            currentUser.wallet.wallet_id,
+
+                        receiver_account_no:
+                            to,
+
+                        amount:amount
+                    })
+                }
+            );
+
+
+        if(!result.success){
+
+            hint.className =
+                "note-box rose";
+
+            hint.textContent =
+                result.error ||
+                "Transfer failed.";
+
+            return;
+        }
+
+
+        hint.className =
+            "note-box";
+
+        hint.textContent =
+            "Success: PKR " +
+            amount.toLocaleString() +
+            " transferred to " +
+            to;
+
+
+        document
+            .getElementById("send-to")
+            .value = "";
+
+        document
+            .getElementById("send-amount")
+            .value = "";
+
+
         updateTransferChecklist();
-        refreshWallet();
+
+        await refreshWallet();
+
         loadHistory();
-    })
-    .catch(err => { hint.className='note-box rose'; hint.textContent='Server error: ' + err; });
-  }
 
-  // ---------- History (real data) ----------
-  function loadHistory(){
-    if(!currentUser) return;
-    fetch('/api/history/' + currentUser.user_id)
-    .then(res => res.json())
-    .then(result => {
-        if(!result.success) return;
-        const rows = result.transactions;
-        const rowHtml = t => {
-            const label = t.direction === 'out' ? `Sent to ${t.counterparty}` : `Received from ${t.counterparty}`;
-            return `<tr>
-                <td><div class="counterparty">${label}</div><div class="counterparty-sub">${t.type} · #${t.id}</div></td>
-                <td>${t.account}</td>
-                <td class="amt ${t.direction}">${t.direction==='in'?'+':'−'} ₨${Math.abs(t.amount).toLocaleString()}</td>
-                <td>${sealHtml(t.status)}</td>
-                <td class="ts">${t.date}</td>
-            </tr>`;
-        };
-        document.getElementById('recent-ledger-body').innerHTML = rows.slice(0,4).map(rowHtml).join('') || '<tr><td colspan="5" style="color:var(--text-faint); padding:16px;">No transactions yet.</td></tr>';
-        document.getElementById('full-ledger-body').innerHTML = rows.map(rowHtml).join('') || '<tr><td colspan="5" style="color:var(--text-faint); padding:16px;">No transactions yet.</td></tr>';
-    });
-  }
 
-  // ---------- Fraud Alerts (Admin only, real data) ----------
-  function loadFraudAlerts(){
-    fetch('/api/fraud-alerts')
-    .then(res => res.json())
-    .then(result => {
-        if(!result.success) return;
-        document.getElementById('flag-list').innerHTML = result.alerts.map(f => `
-            <div class="flag-row">
-              <div class="flag-left">
-                <div class="flag-icon rose">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.86L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0z"/></svg>
-                </div>
-                <div><div class="flag-title">${f.reason}</div><div class="flag-sub">${f.risk_level} risk · ${f.created_at}</div></div>
-              </div>
-            </div>`).join('') || '<p style="color:var(--text-faint); font-size:13px;">No flagged activity.</p>';
-    });
-  }
+    }catch(error){
 
-  // ---------- Merchant Payments (real data) ----------
-  function loadMerchantPayments(){
-    if(!currentUser) return;
-    fetch('/api/merchant-payments/' + currentUser.user_id)
-    .then(res => res.json())
-    .then(result => {
-        if(!result.success) return;
-        document.getElementById('merchant-total').textContent = Number(result.total).toLocaleString();
-        document.getElementById('merchant-ledger-body').innerHTML = result.payments.map(p => `
-            <tr>
-                <td><div class="counterparty">${p.customer}</div><div class="counterparty-sub">#${p.id}</div></td>
-                <td>${p.account}</td>
-                <td class="amt in">+ ₨${p.amount.toLocaleString()}</td>
-                <td>${sealHtml(p.status)}</td>
-                <td class="ts">${p.date}</td>
-            </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-faint); padding:16px;">No payments yet.</td></tr>';
-    });
-  }
+        hint.className =
+            "note-box rose";
 
-  // ---------- Analytics (Admin only, real charts from real data) ----------
-  function destroyChart(id){
-    if(charts[id]){ charts[id].destroy(); delete charts[id]; }
-  }
+        hint.textContent =
+            error.message ||
+            "Transfer request failed.";
 
-  function loadAnalytics(){
-    fetch('/api/analytics')
-    .then(res => res.json())
-    .then(result => {
-        if(!result.success) return;
+    }finally{
 
-        const kt = document.getElementById('kpi-total-txns');
-        const kv = document.getElementById('kpi-total-volume');
-        const kf = document.getElementById('kpi-total-flags');
-        const kl = document.getElementById('kpi-locked');
-        if(kt) kt.textContent = result.total_transactions;
-        if(kv) kv.textContent = Number(result.total_volume).toLocaleString();
-        if(kf) kf.textContent = result.total_flags;
-        if(kl) kl.textContent = result.locked_accounts;
+        requestState.transfer = false;
 
-        const capDaily = document.getElementById('caption-daily');
-        if(capDaily) capDaily.textContent = `${result.total_transactions} total transactions · PKR ${Number(result.total_volume).toLocaleString()} tracked all-time`;
+        button.disabled = false;
+        button.textContent =
+            "Authorize & Send";
+    }
+}
 
-        const capType = document.getElementById('caption-type');
-        if(capType) capType.textContent = result.by_type.map(t => `${t.type}: ${t.count}`).join(' · ') || 'No transactions yet';
 
-        const gold = '#C9A227', teal = '#2BA89A', rose = '#E4572E', textDim = '#8B93A1';
+/* =========================================================
+   CUSTOMER CHART
+========================================================= */
 
-        const dailyCanvas = document.getElementById('chart-daily');
+function renderCustomerChart(
+    moneyIn,
+    moneyOut
+){
+
+    const canvas =
+        document.getElementById(
+            "chart-cust-flow"
+        );
+
+    if(!canvas){
+        return;
+    }
+
+
+    destroyChart("cust-flow");
+
+
+    charts["cust-flow"] =
+        new Chart(
+            canvas,
+            {
+                type:"doughnut",
+
+                data:{
+                    labels:[
+                        "Money In",
+                        "Money Out"
+                    ],
+
+                    datasets:[{
+                        data:[
+                            numberValue(moneyIn),
+                            numberValue(moneyOut)
+                        ],
+
+                        backgroundColor:[
+                            "#2BA89A",
+                            "#E4572E"
+                        ]
+                    }]
+                },
+
+                options:{
+                    responsive:true,
+                    maintainAspectRatio:false,
+
+                    plugins:{
+                        legend:{
+                            position:"bottom",
+
+                            labels:{
+                                color:"#8B93A1"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+}
+
+
+/* =========================================================
+   HISTORY
+========================================================= */
+
+async function loadHistory(){
+
+    if(!currentUser){
+        return;
+    }
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/history/" +
+                encodeURIComponent(
+                    currentUser.user_id
+                )
+            );
+
+
+        if(!result.success){
+            return;
+        }
+
+
+        const metrics =
+            result.metrics || {};
+
+
+        const moneyIn =
+            numberValue(metrics.money_in);
+
+        const moneyOut =
+            numberValue(metrics.money_out);
+
+
+        const inElement =
+            document.getElementById(
+                "cust-kpi-in"
+            );
+
+        const outElement =
+            document.getElementById(
+                "cust-kpi-out"
+            );
+
+        const countElement =
+            document.getElementById(
+                "cust-kpi-count"
+            );
+
+        const flagsElement =
+            document.getElementById(
+                "cust-kpi-flags"
+            );
+
+
+        if(inElement){
+            inElement.textContent =
+                formatPKR(moneyIn);
+        }
+
+        if(outElement){
+            outElement.textContent =
+                formatPKR(moneyOut);
+        }
+
+        if(countElement){
+            countElement.textContent =
+                metrics.total_txns || 0;
+        }
+
+        if(flagsElement){
+            flagsElement.textContent =
+                metrics.pending_flagged || 0;
+        }
+
+
+        renderCustomerChart(
+            moneyIn,
+            moneyOut
+        );
+
+
+        const rows =
+            Array.isArray(result.transactions)
+                ? result.transactions
+                : [];
+
+
+        /*
+         * Recent transactions.
+         */
+
+        const recentBody =
+            document.getElementById(
+                "recent-ledger-body"
+            );
+
+
+        if(recentBody){
+
+            recentBody.innerHTML =
+                rows
+                    .slice(0,4)
+                    .map(t => {
+
+                        const direction =
+                            t.direction === "out"
+                                ? "out"
+                                : "in";
+
+                        const sign =
+                            direction === "in"
+                                ? "+"
+                                : "−";
+
+                        return `
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        ${escapeHtml(
+                                            t.counterparty
+                                        )}
+                                    </strong>
+
+                                    <br>
+
+                                    <span class="ts">
+                                        ${escapeHtml(
+                                            t.type
+                                        )}
+                                    </span>
+                                </td>
+
+                                <td class="amt ${direction}">
+                                    ${sign}
+                                    PKR
+                                    ${formatNumber(t.amount)}
+                                </td>
+
+                                <td>
+                                    ${sealHtml(t.status)}
+                                </td>
+
+                            </tr>
+                        `;
+                    })
+                    .join("")
+                ||
+                `
+                    <tr>
+                        <td
+                            colspan="3"
+                            style="color:var(--text-faint);"
+                        >
+                            No transactions recorded.
+                        </td>
+                    </tr>
+                `;
+        }
+
+
+        /*
+         * Full history.
+         */
+
+        const fullBody =
+            document.getElementById(
+                "full-ledger-body"
+            );
+
+
+        if(fullBody){
+
+            fullBody.innerHTML =
+                rows
+                    .map(t => {
+
+                        const direction =
+                            t.direction === "out"
+                                ? "out"
+                                : "in";
+
+                        const sign =
+                            direction === "in"
+                                ? "+"
+                                : "−";
+
+                        return `
+                            <tr>
+
+                                <td>
+
+                                    <strong>
+                                        ${
+                                            direction === "out"
+                                                ? "Sent to "
+                                                : "Received from "
+                                        }
+
+                                        ${escapeHtml(
+                                            t.counterparty
+                                        )}
+                                    </strong>
+
+                                    <br>
+
+                                    <span class="ts">
+                                        ${escapeHtml(t.type)}
+                                        ·
+                                        #${escapeHtml(t.id)}
+                                    </span>
+
+                                </td>
+
+                                <td>
+                                    <span class="ts">
+                                        ${escapeHtml(t.account)}
+                                    </span>
+                                </td>
+
+                                <td class="amt ${direction}">
+                                    ${sign}
+                                    PKR
+                                    ${formatNumber(t.amount)}
+                                </td>
+
+                                <td>
+                                    ${sealHtml(t.status)}
+                                </td>
+
+                                <td class="ts">
+                                    ${escapeHtml(t.date)}
+                                </td>
+
+                            </tr>
+                        `;
+                    })
+                    .join("")
+                ||
+                `
+                    <tr>
+                        <td
+                            colspan="5"
+                            style="
+                                color:var(--text-faint);
+                                padding:16px;
+                            "
+                        >
+                            No ledger records found.
+                        </td>
+                    </tr>
+                `;
+        }
+
+
+    }catch(error){
+
+        console.error(
+            "History load failed:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   MERCHANT PAYMENTS
+========================================================= */
+
+async function loadMerchantPayments(){
+
+    if(
+        !currentUser ||
+        currentUser.role !== "Merchant"
+    ){
+        return;
+    }
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/merchant-payments/" +
+                encodeURIComponent(
+                    currentUser.user_id
+                )
+            );
+
+
+        if(!result.success){
+            return;
+        }
+
+
+        const metrics =
+            result.metrics || {};
+
+
+        document
+            .getElementById("merch-kpi-rev")
+            .textContent =
+            formatPKR(
+                metrics.total_revenue
+            );
+
+
+        document
+            .getElementById("merch-kpi-today")
+            .textContent =
+            formatPKR(
+                metrics.today_sales
+            );
+
+
+        document
+            .getElementById("merch-kpi-txns")
+            .textContent =
+            metrics.total_txns || 0;
+
+
+        document
+            .getElementById("merch-kpi-avg")
+            .textContent =
+            formatPKR(
+                Math.round(
+                    numberValue(
+                        metrics.avg_payment
+                    )
+                )
+            );
+
+
+        /*
+         * Merchant revenue chart.
+         */
+
+        const canvas =
+            document.getElementById(
+                "chart-merch-trend"
+            );
+
+
+        if(canvas){
+
+            destroyChart(
+                "merch-trend"
+            );
+
+
+            const trend =
+                Array.isArray(
+                    result.revenue_trend
+                )
+                    ? result.revenue_trend
+                    : [];
+
+
+            charts["merch-trend"] =
+                new Chart(
+                    canvas,
+                    {
+                        type:"line",
+
+                        data:{
+                            labels:
+                                trend.map(
+                                    d => d.date
+                                ),
+
+                            datasets:[{
+
+                                label:
+                                    "Settled Revenue (PKR)",
+
+                                data:
+                                    trend.map(
+                                        d =>
+                                            numberValue(
+                                                d.total
+                                            )
+                                    ),
+
+                                borderColor:
+                                    "#C9A227",
+
+                                backgroundColor:
+                                    "rgba(201,162,39,.15)",
+
+                                fill:true,
+
+                                tension:.3
+                            }]
+                        },
+
+                        options:{
+                            responsive:true,
+                            maintainAspectRatio:false,
+
+                            plugins:{
+                                legend:{
+                                    labels:{
+                                        color:"#8B93A1"
+                                    }
+                                }
+                            },
+
+                            scales:{
+
+                                x:{
+                                    ticks:{
+                                        color:"#8B93A1"
+                                    },
+
+                                    grid:{
+                                        color:"#1E2530"
+                                    }
+                                },
+
+                                y:{
+                                    ticks:{
+                                        color:"#8B93A1"
+                                    },
+
+                                    grid:{
+                                        color:"#1E2530"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+        }
+
+
+        /*
+         * Merchant payment ledger.
+         */
+
+        const body =
+            document.getElementById(
+                "merchant-ledger-body"
+            );
+
+
+        if(!body){
+            return;
+        }
+
+
+        const payments =
+            Array.isArray(result.payments)
+                ? result.payments
+                : [];
+
+
+        body.innerHTML =
+            payments
+                .map(p => {
+
+                    return `
+                        <tr>
+
+                            <td>
+
+                                <strong>
+                                    ${escapeHtml(
+                                        p.customer
+                                    )}
+                                </strong>
+
+                                <br>
+
+                                <span class="ts">
+                                    #${escapeHtml(p.id)}
+                                </span>
+
+                            </td>
+
+                            <td>
+                                <span class="ts">
+                                    ${escapeHtml(p.account)}
+                                </span>
+                            </td>
+
+                            <td class="amt in">
+                                +
+                                PKR
+                                ${formatNumber(p.amount)}
+                            </td>
+
+                            <td>
+                                ${sealHtml(p.status)}
+                            </td>
+
+                            <td class="ts">
+                                ${escapeHtml(p.date)}
+                            </td>
+
+                        </tr>
+                    `;
+                })
+                .join("")
+            ||
+            `
+                <tr>
+                    <td
+                        colspan="5"
+                        style="
+                            color:var(--text-faint);
+                            padding:16px;
+                        "
+                    >
+                        No customer settlements yet.
+                    </td>
+                </tr>
+            `;
+
+
+    }catch(error){
+
+        console.error(
+            "Merchant payments load failed:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   FRAUD ALERTS
+========================================================= */
+
+async function loadFraudAlerts(){
+
+    if(
+        !currentUser ||
+        currentUser.role !== "Admin"
+    ){
+        return;
+    }
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/fraud-alerts"
+            );
+
+
+        if(!result.success){
+            return;
+        }
+
+
+        const body =
+            document.getElementById(
+                "fraud-table-body"
+            );
+
+
+        if(!body){
+            return;
+        }
+
+
+        const alerts =
+            Array.isArray(result.alerts)
+                ? result.alerts
+                : [];
+
+
+        body.innerHTML =
+            alerts
+                .map(f => {
+
+                    return `
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    #${escapeHtml(f.id)}
+                                </strong>
+                            </td>
+
+                            <td>
+                                ${escapeHtml(f.user)}
+                            </td>
+
+                            <td>
+                                ${sealHtml(f.risk_level)}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(f.reason)}
+                            </td>
+
+                            <td class="ts">
+                                ${escapeHtml(f.created_at)}
+                            </td>
+
+                        </tr>
+                    `;
+                })
+                .join("")
+            ||
+            `
+                <tr>
+                    <td
+                        colspan="5"
+                        style="color:var(--text-faint);"
+                    >
+                        No fraud alerts registered.
+                    </td>
+                </tr>
+            `;
+
+
+    }catch(error){
+
+        console.error(
+            "Fraud alerts load failed:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   SECURITY LOGS
+========================================================= */
+
+async function loadSecurityLogs(){
+
+    if(
+        !currentUser ||
+        currentUser.role !== "Admin"
+    ){
+        return;
+    }
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/security-logs"
+            );
+
+
+        if(!result.success){
+            return;
+        }
+
+
+        const body =
+            document.getElementById(
+                "security-table-body"
+            );
+
+
+        if(!body){
+            return;
+        }
+
+
+        const logs =
+            Array.isArray(result.logs)
+                ? result.logs
+                : [];
+
+
+        body.innerHTML =
+            logs
+                .map(s => {
+
+                    return `
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    #${escapeHtml(s.id)}
+                                </strong>
+                            </td>
+
+                            <td>
+                                ${escapeHtml(s.user)}
+                            </td>
+
+                            <td>
+                                <span class="seal pending">
+                                    ${escapeHtml(s.action)}
+                                </span>
+                            </td>
+
+                            <td>
+                                ${escapeHtml(s.description)}
+                            </td>
+
+                            <td class="ts">
+                                ${escapeHtml(s.timestamp)}
+                            </td>
+
+                        </tr>
+                    `;
+                })
+                .join("")
+            ||
+            `
+                <tr>
+                    <td
+                        colspan="5"
+                        style="color:var(--text-faint);"
+                    >
+                        No security events recorded.
+                    </td>
+                </tr>
+            `;
+
+
+    }catch(error){
+
+        console.error(
+            "Security logs load failed:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   UNLOCK ACCOUNT
+========================================================= */
+
+async function doUnlockAccount(){
+
+    if(
+        requestState.unlock ||
+        !currentUser ||
+        currentUser.role !== "Admin"
+    ){
+        return;
+    }
+
+
+    const email =
+        document
+            .getElementById("unlock-email")
+            .value
+            .trim();
+
+    const msg =
+        document.getElementById(
+            "unlock-msg"
+        );
+
+    const button =
+        document.getElementById(
+            "unlock-btn"
+        );
+
+
+    if(!email){
+
+        msg.style.display = "block";
+
+        msg.className =
+            "note-box rose";
+
+        msg.textContent =
+            "Please enter a user email address.";
+
+        return;
+    }
+
+
+    requestState.unlock = true;
+
+    button.disabled = true;
+    button.textContent = "Unlocking...";
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/unlock-account",
+                {
+                    method:"POST",
+                    body:JSON.stringify({
+                        email:email
+                    })
+                }
+            );
+
+
+        msg.style.display = "block";
+
+        if(result.success){
+
+            msg.className =
+                "note-box";
+
+            msg.textContent =
+                result.message ||
+                "Account unlocked successfully.";
+
+        }else{
+
+            msg.className =
+                "note-box rose";
+
+            msg.textContent =
+                result.error ||
+                "Unable to unlock account.";
+        }
+
+
+        loadAnalytics();
+        loadSecurityLogs();
+
+
+    }catch(error){
+
+        msg.style.display = "block";
+
+        msg.className =
+            "note-box rose";
+
+        msg.textContent =
+            error.message ||
+            "Unlock request failed.";
+
+    }finally{
+
+        requestState.unlock = false;
+
+        button.disabled = false;
+        button.textContent =
+            "Unlock Account";
+    }
+}
+
+
+/* =========================================================
+   CHART MANAGEMENT
+========================================================= */
+
+function destroyChart(id){
+
+    if(charts[id]){
+
+        try{
+            charts[id].destroy();
+        }catch(error){
+            console.warn(
+                "Chart destroy failed:",
+                error
+            );
+        }
+
+        delete charts[id];
+    }
+}
+
+
+/* =========================================================
+   ADMIN ANALYTICS
+========================================================= */
+
+async function loadAnalytics(){
+
+    if(
+        !currentUser ||
+        currentUser.role !== "Admin"
+    ){
+        return;
+    }
+
+
+    try{
+
+        const result =
+            await apiRequest(
+                "/api/analytics"
+            );
+
+
+        if(!result.success){
+            return;
+        }
+
+
+        /*
+         * ADMIN KPIs
+         */
+
+        const ku =
+            document.getElementById(
+                "kpi-total-users"
+            );
+
+        const kw =
+            document.getElementById(
+                "kpi-active-wallets"
+            );
+
+        const kt =
+            document.getElementById(
+                "kpi-total-txns"
+            );
+
+        const kv =
+            document.getElementById(
+                "kpi-total-volume"
+            );
+
+        const kl =
+            document.getElementById(
+                "kpi-locked"
+            );
+
+        const kf =
+            document.getElementById(
+                "kpi-total-flags"
+            );
+
+
+        if(ku){
+            ku.textContent =
+                result.total_users || 0;
+        }
+
+        if(kw){
+            kw.textContent =
+                result.active_wallets || 0;
+        }
+
+        if(kt){
+            kt.textContent =
+                result.total_transactions || 0;
+        }
+
+        if(kv){
+            kv.textContent =
+                formatPKR(
+                    result.total_volume
+                );
+        }
+
+        if(kl){
+            kl.textContent =
+                result.locked_accounts || 0;
+        }
+
+        if(kf){
+            kf.textContent =
+                result.total_flags || 0;
+        }
+
+
+        const gold =
+            "#C9A227";
+
+        const teal =
+            "#2BA89A";
+
+        const rose =
+            "#E4572E";
+
+        const textDim =
+            "#8B93A1";
+
+
+        const daily =
+            Array.isArray(result.daily)
+                ? result.daily
+                : [];
+
+
+        /*
+         * DAILY VOLUME
+         */
+
+        const dailyCanvas =
+            document.getElementById(
+                "chart-daily"
+            );
+
+
         if(dailyCanvas){
-            destroyChart('daily');
-            charts['daily'] = new Chart(dailyCanvas, {
-                type: 'line',
-                data: {
-                    labels: result.daily.map(d => d.date),
-                    datasets: [{
-                        label: 'PKR Volume',
-                        data: result.daily.map(d => d.total),
-                        borderColor: gold,
-                        backgroundColor: 'rgba(201,162,39,0.15)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: textDim } } },
-                    scales: {
-                        x: { ticks: { color: textDim }, grid: { color: '#1E2530' } },
-                        y: { ticks: { color: textDim }, grid: { color: '#1E2530' } }
+
+            destroyChart("daily");
+
+
+            charts["daily"] =
+                new Chart(
+                    dailyCanvas,
+                    {
+                        type:"line",
+
+                        data:{
+
+                            labels:
+                                daily.map(
+                                    d => d.date
+                                ),
+
+                            datasets:[{
+
+                                label:
+                                    "Volume (PKR)",
+
+                                data:
+                                    daily.map(
+                                        d =>
+                                            numberValue(
+                                                d.total
+                                            )
+                                    ),
+
+                                borderColor:
+                                    gold,
+
+                                backgroundColor:
+                                    "rgba(201,162,39,.15)",
+
+                                fill:true,
+
+                                tension:.3
+                            }]
+                        },
+
+                        options:{
+
+                            responsive:true,
+                            maintainAspectRatio:false,
+
+                            plugins:{
+                                legend:{
+                                    labels:{
+                                        color:textDim
+                                    }
+                                }
+                            },
+
+                            scales:{
+
+                                x:{
+                                    ticks:{
+                                        color:textDim
+                                    },
+
+                                    grid:{
+                                        color:"#1E2530"
+                                    }
+                                },
+
+                                y:{
+                                    ticks:{
+                                        color:textDim
+                                    },
+
+                                    grid:{
+                                        color:"#1E2530"
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            });
+                );
         }
 
-        const typeCanvas = document.getElementById('chart-type');
+
+        /*
+         * TRANSACTION TYPE
+         */
+
+        const typeCanvas =
+            document.getElementById(
+                "chart-type"
+            );
+
+
         if(typeCanvas){
-            destroyChart('type');
-            charts['type'] = new Chart(typeCanvas, {
-                type: 'doughnut',
-                data: {
-                    labels: result.by_type.map(t => t.type),
-                    datasets: [{
-                        data: result.by_type.map(t => t.count),
-                        backgroundColor: [gold, teal, rose]
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: textDim } } }
-                }
-            });
+
+            destroyChart("type");
+
+
+            const byType =
+                Array.isArray(
+                    result.by_type
+                )
+                    ? result.by_type
+                    : [];
+
+
+            charts["type"] =
+                new Chart(
+                    typeCanvas,
+                    {
+                        type:"doughnut",
+
+                        data:{
+
+                            labels:
+                                byType.map(
+                                    t => t.type
+                                ),
+
+                            datasets:[{
+
+                                data:
+                                    byType.map(
+                                        t =>
+                                            numberValue(
+                                                t.count
+                                            )
+                                    ),
+
+                                backgroundColor:[
+                                    gold,
+                                    teal,
+                                    rose
+                                ]
+                            }]
+                        },
+
+                        options:{
+
+                            responsive:true,
+                            maintainAspectRatio:false,
+
+                            plugins:{
+                                legend:{
+                                    position:"bottom",
+
+                                    labels:{
+                                        color:textDim
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
         }
 
-        const countCanvas = document.getElementById('chart-count');
+
+        /*
+         * DAILY COUNT
+         */
+
+        const countCanvas =
+            document.getElementById(
+                "chart-count"
+            );
+
+
         if(countCanvas){
-            destroyChart('count');
-            charts['count'] = new Chart(countCanvas, {
-                type: 'bar',
-                data: {
-                    labels: result.daily.map(d => d.date),
-                    datasets: [{
-                        label: 'Transactions',
-                        data: result.daily.map(d => d.count),
-                        backgroundColor: teal
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { ticks: { color: textDim }, grid: { color: '#1E2530' } },
-                        y: { ticks: { color: textDim }, grid: { color: '#1E2530' } }
+
+            destroyChart("count");
+
+
+            charts["count"] =
+                new Chart(
+                    countCanvas,
+                    {
+                        type:"bar",
+
+                        data:{
+
+                            labels:
+                                daily.map(
+                                    d => d.date
+                                ),
+
+                            datasets:[{
+
+                                label:
+                                    "Transactions Count",
+
+                                data:
+                                    daily.map(
+                                        d =>
+                                            numberValue(
+                                                d.count
+                                            )
+                                    ),
+
+                                backgroundColor:
+                                    teal
+                            }]
+                        },
+
+                        options:{
+
+                            responsive:true,
+                            maintainAspectRatio:false,
+
+                            plugins:{
+                                legend:{
+                                    display:false
+                                }
+                            },
+
+                            scales:{
+
+                                x:{
+                                    ticks:{
+                                        color:textDim
+                                    },
+
+                                    grid:{
+                                        color:"#1E2530"
+                                    }
+                                },
+
+                                y:{
+                                    ticks:{
+                                        color:textDim
+                                    },
+
+                                    grid:{
+                                        color:"#1E2530"
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            });
+                );
         }
 
-        const riskCanvas = document.getElementById('chart-risk');
+
+        /*
+         * RISK PROFILE
+         */
+
+        const riskCanvas =
+            document.getElementById(
+                "chart-risk"
+            );
+
+
         if(riskCanvas){
-            destroyChart('risk');
-            charts['risk'] = new Chart(riskCanvas, {
-                type: 'bar',
-                data: {
-                    labels: result.by_risk.map(r => r.level),
-                    datasets: [{
-                        label: 'Alerts',
-                        data: result.by_risk.map(r => r.count),
-                        backgroundColor: [rose, gold, teal]
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { ticks: { color: textDim }, grid: { color: '#1E2530' } },
-                        y: { ticks: { color: textDim }, grid: { color: '#1E2530' } }
+
+            destroyChart("risk");
+
+
+            const byRisk =
+                Array.isArray(
+                    result.by_risk
+                )
+                    ? result.by_risk
+                    : [];
+
+
+            charts["risk"] =
+                new Chart(
+                    riskCanvas,
+                    {
+                        type:"bar",
+
+                        data:{
+
+                            labels:
+                                byRisk.map(
+                                    r => r.level
+                                ),
+
+                            datasets:[{
+
+                                label:
+                                    "Threat Count",
+
+                                data:
+                                    byRisk.map(
+                                        r =>
+                                            numberValue(
+                                                r.count
+                                            )
+                                    ),
+
+                                backgroundColor:[
+                                    rose,
+                                    gold,
+                                    teal
+                                ]
+                            }]
+                        },
+
+                        options:{
+
+                            responsive:true,
+                            maintainAspectRatio:false,
+
+                            plugins:{
+                                legend:{
+                                    display:false
+                                }
+                            },
+
+                            scales:{
+
+                                x:{
+                                    ticks:{
+                                        color:textDim
+                                    },
+
+                                    grid:{
+                                        color:"#1E2530"
+                                    }
+                                },
+
+                                y:{
+                                    ticks:{
+                                        color:textDim
+                                    },
+
+                                    grid:{
+                                        color:"#1E2530"
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            });
+                );
         }
+
+
+    }catch(error){
+
+        console.error(
+            "Analytics load failed:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   NAVIGATION EVENTS
+========================================================= */
+
+document
+    .querySelectorAll(".nav-item")
+    .forEach(item => {
+
+        item.addEventListener(
+            "click",
+            () => {
+
+                switchView(
+                    item.dataset.view
+                );
+            }
+        );
     });
-  }
+
+
+/* =========================================================
+   ENTER KEY LOGIN
+========================================================= */
+
+document
+    .getElementById("login-pass")
+    .addEventListener(
+        "keydown",
+        event => {
+
+            if(event.key === "Enter"){
+                doLogin();
+            }
+        }
+    );
+
+
+/* =========================================================
+   ESCAPE CLOSE MODAL
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if(event.key === "Escape"){
+
+            const modal =
+                document.getElementById(
+                    "signup-overlay"
+                );
+
+            if(
+                modal &&
+                modal.classList.contains("active")
+            ){
+                closeSignup();
+            }
+        }
+    }
+);
+
+
+/* =========================================================
+   CLICK OUTSIDE MODAL
+========================================================= */
+
+document
+    .getElementById("signup-overlay")
+    .addEventListener(
+        "click",
+        event => {
+
+            if(
+                event.target.id ===
+                "signup-overlay"
+            ){
+                closeSignup();
+            }
+        }
+    );
 </script>
+
 </body>
 </html>

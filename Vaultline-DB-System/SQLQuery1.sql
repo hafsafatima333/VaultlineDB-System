@@ -15,8 +15,7 @@ GO
 
 
 
-DELETE FROM TRANSACTIONS;
-DELETE FROM FraudAlerts;
+
 --user table
 CREATE TABLE USERS (
     UserId           INT           IDENTITY (1001, 1) PRIMARY KEY,
@@ -91,18 +90,34 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @NewUserId AS INT;
     DECLARE @Calculatelimit AS DECIMAL (17, 2);
-    IF (@ROLE = 'Merchant')
-        SET @CalculateLimit = 200000.00;
+
+    IF (@Role = 'Merchant')
+        SET @Calculatelimit = 200000.00;
     ELSE
-        SET @CalculateLimit = 50000.00;
-    --INSERTION IN USER TABLE
-    INSERT  INTO USERS (FullName, Email, PasswordHash, Role)
-    VALUES            (@FullName, @Email, @PasswordHash, @Role);
-    SET @NewUserId = SCOPE_IDENTITY();
-    --INSERTION IN WALLET TABLE
-    INSERT  INTO WALLETS (UserId, AccountNo, Balance, DailyLimit)
-    VALUES              (@NewUserId, @AccountNo, 0.00, @Calculatelimit);
-    PRINT 'User and Wallet Successfully Registered!';
+        SET @Calculatelimit = 50000.00;
+
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        --INSERTION IN USER TABLE
+        INSERT INTO USERS (FullName, Email, PasswordHash, Role)
+        VALUES (@FullName, @Email, @PasswordHash, @Role);
+
+        SET @NewUserId = SCOPE_IDENTITY();
+
+        --INSERTION IN WALLET TABLE (Admin does NOT get a wallet)
+        IF (@Role <> 'Admin')
+        BEGIN
+            INSERT INTO WALLETS (UserId, AccountNo, Balance, DailyLimit)
+            VALUES (@NewUserId, @AccountNo, 0.00, @Calculatelimit);
+        END
+
+        COMMIT TRANSACTION;
+        PRINT 'User Successfully Registered!';
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        PRINT 'Error: Registration Failed - ' + ERROR_MESSAGE();
+    END CATCH
 END
 
 
