@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session
 from db import get_connection
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import os
 
@@ -30,13 +31,19 @@ def register():
     role = data.get('role')
     account_no = 'VL-' + str(random.randint(10000, 99999))
 
+    if not full_name or not email or not password or not role:
+        return jsonify({"success": False, "error": "All fields are required"})
+
+    # Hash the password before it ever touches the database
+    password_hash = generate_password_hash(password)
+
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
             EXEC usp_RegisterUser 
             @FullName=?, @Email=?, @PasswordHash=?, @Role=?, @AccountNo=?
-        """, full_name, email, password, role, account_no)
+        """, full_name, email, password_hash, role, account_no)
         conn.commit()
         conn.close()
         return jsonify({"success": True, "account_no": account_no})
@@ -50,23 +57,31 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
+    if not email or not password:
+        return jsonify({"success": False, "error": "Email and password are required"})
+
     try:
         conn = get_connection()
         cursor = conn.cursor()
+        # Fetch by email ONLY - password is verified in Python against the hash
         cursor.execute("""
-            SELECT UserId, FullName, Email, Role, Status
+            SELECT UserId, FullName, Email, PasswordHash, Role, Status
             FROM USERS
-            WHERE Email = ? AND PasswordHash = ?
-        """, email, password)
+            WHERE Email = ?
+        """, email)
         row = cursor.fetchone()
 
         if row is None:
+            conn.close()
+            return jsonify({"success": False, "error": "Invalid email or password"})
+
+        user_id, full_name, user_email, password_hash, role, status = row
+
+        if not check_password_hash(password_hash, password):
             cursor.execute("EXEC usp_HandleFailedLogin @Email=?", email)
             conn.commit()
             conn.close()
             return jsonify({"success": False, "error": "Invalid email or password"})
-
-        user_id, full_name, user_email, role, status = row
 
         if status != 'Active':
             conn.close()
@@ -569,7 +584,7 @@ def analytics():
         cursor.execute("SELECT COUNT(*) FROM USERS WHERE Status = 'Locked'")
         locked_accounts = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM USERS")
+        cursor.execute("SELECT COUNT(*) FROM USERS WHERE Role <> 'Admin'")
         total_users = cursor.fetchone()[0]
 
         cursor.execute("SELECT COUNT(*) FROM WALLETS")

@@ -1,4 +1,6 @@
 
+USE master;
+GO
 IF DB_ID('VaultlineDB') IS NOT NULL
 BEGIN
     ALTER DATABASE VaultlineDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -21,7 +23,7 @@ CREATE TABLE USERS (
     UserId           INT           IDENTITY (1001, 1) PRIMARY KEY,
     FullName         VARCHAR (80)  NOT NULL,
     Email            VARCHAR (100) UNIQUE NOT NULL,
-    PasswordHash     VARCHAR (250) NOT NULL,
+    PasswordHash     VARCHAR (500) NOT NULL,
     Role             VARCHAR (20)  CHECK (Role IN ('Customer', 'Merchant', 'Admin')) NOT NULL,
     Status           VARCHAR (20)  DEFAULT 'Active' CHECK (Status IN ('Active', 'Locked', 'Suspended')),
     FailedLoginCount INT           DEFAULT 0,
@@ -123,19 +125,30 @@ END
 
 GO
 --main
-EXECUTE usp_RegisterUser @FullName = 'Hafsa Fatima', @Email = 'hafsa@vaultline.com', @PasswordHash = 'hashed_pass_123', @Role = 'Customer', @AccountNo = 'VL-10492';
+EXECUTE usp_RegisterUser @FullName = 'Hafsa Fatima', @Email = 'hafsa@vaultline.com', 
+@PasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949', 
+@Role = 'Customer', @AccountNo = 'VL-10492';
 
-EXECUTE usp_RegisterUser @FullName = 'Hashmat Ali', @Email = 'ali@vaultline.com', @PasswordHash = 'hashed_pass_456', @Role = 'Customer', @AccountNo = 'VL-10493';
+-- Hashmat Ali (Customer - Pass: pass123)
+EXECUTE usp_RegisterUser @FullName = 'Hashmat Ali', @Email = 'ali@vaultline.com', 
+@PasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949', 
+@Role = 'Customer', @AccountNo = 'VL-10493';
 
-EXECUTE usp_RegisterUser @FullName = 'Daniya Khan', @Email = 'daniya@gmail.com', @PasswordHash = 'hashed_pass_789', @Role = 'Merchant', @AccountNo = 'VL-10494';
+-- Daniya Khan (Merchant - Pass: pass123)
+EXECUTE usp_RegisterUser @FullName = 'Daniya Khan', @Email = 'daniya@gmail.com', 
+@PasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949', 
+@Role = 'Merchant', @AccountNo = 'VL-10494';
 
-EXECUTE usp_RegisterUser @FullName = 'Zubair Alam', @Email = 'zubair123@gmail.com', @PasswordHash = 'hashed_pass_675', @Role = 'Customer', @AccountNo = 'VL-10495';
+-- Zubair Alam (Customer - Pass: pass123)
+EXECUTE usp_RegisterUser @FullName = 'Zubair Alam', @Email = 'zubair123@gmail.com', 
+@PasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949', 
+@Role = 'Customer', @AccountNo = 'VL-10495';
 
 --ADMIN ACCOUNT (bank staff not self-registered by users)
 EXECUTE usp_RegisterUser
 @FullName = 'Admin User', 
 @Email = 'admin@vaultline.com', 
-@PasswordHash = 'admin_pass_001', 
+@PasswordHash = 'scrypt:32768:8:1$9gGdOHy230VLB6EP$f9333a28885a482f5069384eed8832b7865dfd60baaf1b4397e3fba18e1214897f325dbf3d1be595e593a63778be813fc57c3db0f79d3c593037bab0439e8bbc',
 @Role = 'Admin',
 @AccountNo = 'VL-90001';
 
@@ -147,14 +160,7 @@ SELECT *
 FROM   WALLETS;
 
 SELECT *
-FROM   USERS;
-
-SELECT *
-FROM   WALLETS;
-
-SELECT *
 FROM   TRANSACTIONS;
-
 
 GO
 ---------------------------------------------------2ND METHOD
@@ -238,9 +244,7 @@ END
 
 GO
 --2ND MAIN
-UPDATE WALLETS
-SET    BALANCE = 10000.00
-WHERE  WalletId = 5001;
+EXEC usp_DepositFunds @WalletId = 5001, @Amount = 10000.00;
 
 EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 3000.00;
 
@@ -336,29 +340,27 @@ GO
 CREATE OR ALTER TRIGGER trg_CheckHighValueTransaction
     ON TRANSACTIONS
     AFTER INSERT
-    AS BEGIN
-           SET NOCOUNT ON;
-           DECLARE @HightThreshold AS DECIMAL (18, 2);
-           SELECT TOP 1 @HightThreshold = HighValueThreshold
-           FROM   SystemSettings;
-           INSERT INTO FraudAlerts (TransactionID, UserID, RiskLevel, Reason)
-           SELECT i.TransactionId,
-                  w.UserId,
-                  'High',
-                  CONCAT('High Value Transfer Detected: PKR ', i.Amount)
-           FROM   inserted AS i
-                  INNER JOIN
-                  WALLETS AS W
-                  ON i.SenderWalletId = w.WalletId
-           WHERE  i.Amount >= @HightThreshold;
-       END
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @HighThreshold AS DECIMAL (18, 2);
+    SELECT TOP 1 @HighThreshold = HighValueThreshold FROM SystemSettings;
+
+    INSERT INTO FraudAlerts (TransactionID, UserID, RiskLevel, Reason)
+    SELECT i.TransactionId, w.UserId, 'High',
+ CONCAT('High Value ', i.TransactionType, ' Detected: PKR ', i.Amount)
+    FROM inserted AS i
+    INNER JOIN WALLETS AS w
+        ON w.WalletId = ISNULL(i.SenderWalletId, i.ReceiverWalletId)
+    WHERE i.Amount >= @HighThreshold;
+END
 
 
 GO
 ----4th main
-UPDATE WALLETS
-SET    Balance = 160000.00
-WHERE  WalletId = 5001;
+EXEC usp_DepositFunds 
+@WalletId = 5001,
+@Amount = 160000.00;
 
 EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 105000.00;
 
@@ -391,8 +393,7 @@ GO
 
 --5th main 
 SELECT * FROM   vw_TransactionAuditSummary;
-
-
+GO
 ----------------------------------------------------------6th method 
 CREATE OR ALTER PROCEDURE usp_DepositFunds
 @WalletId INT ,
@@ -492,3 +493,43 @@ SELECT * FROM TRANSACTIONS;
 GO
 
 
+
+---------------------8th method 
+CREATE OR ALTER PROCEDURE usp_ResetUserPassword
+    @Email VARCHAR(100),
+    @NewPasswordHash VARCHAR(500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @TargetUserId INT;
+
+    SELECT @TargetUserId = UserId FROM USERS WHERE Email = @Email;
+
+    IF (@TargetUserId IS NOT NULL)
+    BEGIN
+        UPDATE USERS 
+        SET PasswordHash = @NewPasswordHash, 
+            Status = 'Active', 
+            FailedLoginCount = 0 
+        WHERE UserId = @TargetUserId;
+
+        INSERT INTO SecurityLogs(UserID, ActionType, Description) 
+        VALUES (@TargetUserId, 'PASSWORD_RESET', 'Password successfully reset by user.');
+
+        PRINT 'Password reset successfully!';
+    END
+    ELSE
+    BEGIN
+        PRINT 'ERROR: USER NOT FOUND!';
+    END
+END;
+GO
+
+-------------8TH main
+EXEC usp_ResetUserPassword 
+    @Email = 'hafsa@vaultline.com', 
+    @NewPasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949';
+
+SELECT UserId, FullName, Email, Status, FailedLoginCount FROM USERS WHERE Email = 'hafsa@vaultline.com';
+SELECT * FROM SecurityLogs WHERE ActionType = 'PASSWORD_RESET';
+GO
