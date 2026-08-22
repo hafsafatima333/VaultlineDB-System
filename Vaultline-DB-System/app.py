@@ -120,6 +120,33 @@ def login():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+
+
+# ---------------- FORGOT / RESET PASSWORD ----------------
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    new_password = data.get('new_password', '').strip()
+
+    if not email or not new_password:
+        return jsonify({"success": False, "error": "Email and new password are required."}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"success": False, "error": "Password must be at least 6 characters."}), 400
+
+    new_hash = generate_password_hash(new_password)
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("EXEC usp_ResetUserPassword @Email = ?, @NewPasswordHash = ?", email, new_hash)
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "Password updated successfully! Please sign in."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 # ---------------- LOGOUT ----------------
 @app.route('/api/logout', methods=['POST'])
 def logout():

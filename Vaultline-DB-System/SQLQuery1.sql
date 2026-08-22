@@ -163,6 +163,71 @@ SELECT *
 FROM   TRANSACTIONS;
 
 GO
+
+    -------------6TH method
+CREATE OR ALTER PROCEDURE usp_DepositFunds
+@WalletId INT ,
+@Amount DECIMAL (18,2) 
+
+AS 
+BEGIN
+    SET NOCOUNT ON ;
+    --CONDITIONS
+    IF(@Amount <= 0 )
+    BEGIN 
+    
+        PRINT 'ERROR: DEPOSIT AMOUNT MUST BE GREATER THAN ZERO!';
+        RETURN;
+    END
+
+    IF NOT EXISTS(SELECT 1 FROM WALLETS WHERE WalletId = @WalletId)
+    BEGIN 
+    PRINT 'ERROR: WALLET NOT FOUND!';
+    RETURN;
+    END
+
+----------BALANCE DEPOSIT     
+    BEGIN TRANSACTION ;
+    BEGIN TRY 
+    UPDATE WALLETS SET Balance = Balance + @Amount WHERE WalletId = @WalletId ;
+
+    INSERT  INTO TRANSACTIONS (SenderWalletId, ReceiverWalletId, Amount, TransactionType, Status)  VALUES (NULL, @WalletId, @Amount, 'Deposit', 'Verified');
+    COMMIT TRANSACTION;
+    PRINT 'Funds Deposited Successfully!';
+    END TRY 
+    BEGIN CATCH 
+    ROLLBACK TRANSACTION ;
+    PRINT 'Error: Deposit Failed!';
+    END CATCH 
+    END;
+    GO
+
+
+    -------------6TH MAIN 
+    EXEC usp_DepositFunds
+    @WalletId = 5001,
+    @Amount = 500;
+
+    SELECT * FROM WALLETS WHERE WalletId = 5001;
+
+    -- 2. Negative Amount Test (Error test)
+   EXEC usp_DepositFunds 
+   @WalletId = 5001, 
+   @Amount = -500.00;
+
+-- 3. Invalid Wallet Test (Error test)
+   EXEC usp_DepositFunds 
+   @WalletId = 9999, 
+   @Amount = 2000.00;
+
+   -- Verification
+   SELECT * FROM WALLETS WHERE WalletId = 5001;
+   SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Deposit';
+   GO
+
+
+
+
 ---------------------------------------------------2ND METHOD
 CREATE OR ALTER PROCEDURE usp_PerformTransfer
 @SenderWalletId INT, @ReceiverWalletId INT, @Amount DECIMAL (18, 2)
@@ -348,13 +413,18 @@ BEGIN
 
     INSERT INTO FraudAlerts (TransactionID, UserID, RiskLevel, Reason)
     SELECT i.TransactionId, w.UserId, 'High',
- CONCAT('High Value ', i.TransactionType, ' Detected: PKR ', i.Amount)
+        CONCAT('High Value ', i.TransactionType, ' Detected: PKR ', i.Amount)
     FROM inserted AS i
     INNER JOIN WALLETS AS w
         ON w.WalletId = ISNULL(i.SenderWalletId, i.ReceiverWalletId)
     WHERE i.Amount >= @HighThreshold;
-END
 
+    UPDATE t
+    SET t.Status = 'Flagged'
+    FROM TRANSACTIONS t
+    INNER JOIN inserted i ON t.TransactionId = i.TransactionId
+    WHERE i.Amount >= @HighThreshold;
+END
 
 GO
 ----4th main
@@ -395,66 +465,6 @@ GO
 SELECT * FROM   vw_TransactionAuditSummary;
 GO
 ----------------------------------------------------------6th method 
-CREATE OR ALTER PROCEDURE usp_DepositFunds
-@WalletId INT ,
-@Amount DECIMAL (18,2) 
-
-AS 
-BEGIN
-    SET NOCOUNT ON ;
-    --CONDITIONS
-    IF(@Amount <= 0 )
-    BEGIN 
-    
-        PRINT 'ERROR: DEPOSIT AMOUNT MUST BE GREATER THAN ZERO!';
-        RETURN;
-    END
-
-    IF NOT EXISTS(SELECT 1 FROM WALLETS WHERE WalletId = @WalletId)
-    BEGIN 
-    PRINT 'ERROR: WALLET NOT FOUND!';
-    RETURN;
-    END
-
-----------BALANCE DEPOSIT     
-    BEGIN TRANSACTION ;
-    BEGIN TRY 
-    UPDATE WALLETS SET Balance = Balance + @Amount WHERE WalletId = @WalletId ;
-
-    INSERT  INTO TRANSACTIONS (SenderWalletId, ReceiverWalletId, Amount, TransactionType, Status)  VALUES (NULL, @WalletId, @Amount, 'Deposit', 'Verified');
-    COMMIT TRANSACTION;
-    PRINT 'Funds Deposited Successfully!';
-    END TRY 
-    BEGIN CATCH 
-    ROLLBACK TRANSACTION ;
-    PRINT 'Error: Deposit Failed!';
-    END CATCH 
-    END;
-    GO
-
-
-    -------------6TH MAIN 
-    EXEC usp_DepositFunds
-    @WalletId = 5001,
-    @Amount = 500;
-
-    SELECT * FROM WALLETS WHERE WalletId = 5001;
-
-    -- 2. Negative Amount Test (Error test)
-   EXEC usp_DepositFunds 
-   @WalletId = 5001, 
-   @Amount = -500.00;
-
--- 3. Invalid Wallet Test (Error test)
-   EXEC usp_DepositFunds 
-   @WalletId = 9999, 
-   @Amount = 2000.00;
-
-   -- Verification
-   SELECT * FROM WALLETS WHERE WalletId = 5001;
-   SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Deposit';
-   GO
-
 
   
   ---------------------7th method 
