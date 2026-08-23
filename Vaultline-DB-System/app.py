@@ -34,12 +34,19 @@ def register():
     if not full_name or not email or not password or not role:
         return jsonify({"success": False, "error": "All fields are required"})
 
-    # Hash the password before it ever touches the database
     password_hash = generate_password_hash(password)
 
     try:
         conn = get_connection()
         cursor = conn.cursor()
+
+        # Check duplicate email BEFORE calling the stored procedure —
+        # avoids the raw SQL/transaction-mismatch error on failure
+        cursor.execute("SELECT 1 FROM USERS WHERE Email = ?", email)
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({"success": False, "error": "This email is already registered. Please sign in instead."})
+
         cursor.execute("""
             EXEC usp_RegisterUser 
             @FullName=?, @Email=?, @PasswordHash=?, @Role=?, @AccountNo=?
@@ -48,7 +55,10 @@ def register():
         conn.close()
         return jsonify({"success": True, "account_no": account_no})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        error_text = str(e)
+        if "UNIQUE KEY" in error_text or "duplicate key" in error_text.lower():
+            return jsonify({"success": False, "error": "This email is already registered. Please sign in instead."})
+        return jsonify({"success": False, "error": "Registration failed. Please try again."})
 
 # ---------------- LOGIN ----------------
 @app.route('/api/login', methods=['POST'])
@@ -82,9 +92,10 @@ def login():
             conn.commit()
             conn.close()
             return jsonify({"success": False, "error": "Invalid email or password"})
-
         if status != 'Active':
             conn.close()
+            if status == 'Locked':
+                return jsonify({"success": False, "error": "Account is Locked due to failed login attempts. Contact admin at admin@vaultline.com to unlock."})
             return jsonify({"success": False, "error": f"Account is {status}. Contact admin."})
 
         # Set Server-Side Session
@@ -135,11 +146,23 @@ def reset_password():
     if len(new_password) < 6:
         return jsonify({"success": False, "error": "Password must be at least 6 characters."}), 400
 
-    new_hash = generate_password_hash(new_password)
-
     try:
         conn = get_connection()
         cursor = conn.cursor()
+
+        cursor.execute("SELECT Status FROM USERS WHERE Email = ?", email)
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({"success": False, "error": "No account found with this email."}), 404
+
+        # SECURITY: Locked accounts CANNOT self-reset — only Admin can unlock.
+        # Prevents attackers from locking an account then bypassing via forgot-password.
+        if row[0] == 'Locked':
+            conn.close()
+            return jsonify({"success": False, "error": "This account is locked due to failed login attempts. Contact admin at admin@vaultline.com to unlock it."}), 403
+
+        new_hash = generate_password_hash(new_password)
         cursor.execute("EXEC usp_ResetUserPassword @Email = ?, @NewPasswordHash = ?", email, new_hash)
         conn.commit()
         conn.close()

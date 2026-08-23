@@ -348,38 +348,47 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @CurrentUserId AS INT;
     DECLARE @CurrentFailedCount AS INT;
+    DECLARE @CurrentRole AS VARCHAR(20);
     DECLARE @MaxLogin AS INT;
-    SELECT TOP 1 @MaxLogin = MaxFailedLogins
-    FROM   SystemSettings;
-    SELECT @CurrentUserId = UserId,
-           @CurrentFailedCount = FailedLoginCount
-    FROM   USERS
-    WHERE  Email = @Email;
-    IF (@CurrentUserId IS NOT NULL)
-        BEGIN
-            SET @CurrentFailedCount = @CurrentFailedCount + 1;
-            IF (@CurrentFailedCount >= @MaxLogin)
-                BEGIN
-                    UPDATE USERS
-                    SET  FailedLoginCount = @CurrentFailedCount, Status = 'Locked'
-                    WHERE  UserId = @CurrentUserId;
-                    INSERT  INTO SecurityLogs (UserId, ActionType, Description)  VALUES   (@CurrentUserId, 'ACCOUNT_LOCKED', 'Account locked due to consecutive failed login attempts.');
-                    PRINT 'Account has been LOCKED due to multiple failed attempts!';
-                END
-            ELSE
-                BEGIN
-                    UPDATE USERS
-                    SET    FailedLoginCount = @CurrentFailedCount
-                    WHERE  UserId = @CurrentUserId;
-                    PRINT 'Invalid password. Attempt recorded.';
-                END
-        END
-    ELSE
-        BEGIN
-            PRINT 'User not found!';
-        END
-END
 
+    SELECT TOP 1 @MaxLogin = MaxFailedLogins FROM SystemSettings;
+    SELECT @CurrentUserId = UserId, @CurrentFailedCount = FailedLoginCount, @CurrentRole = Role
+    FROM USERS WHERE Email = @Email;
+
+    IF (@CurrentUserId IS NOT NULL)
+    BEGIN
+        SET @CurrentFailedCount = @CurrentFailedCount + 1;
+
+        -- Admin accounts are never auto-locked (avoids the "who unlocks the only Admin?" problem)
+        IF (@CurrentRole = 'Admin')
+        BEGIN
+            UPDATE USERS SET FailedLoginCount = @CurrentFailedCount WHERE UserId = @CurrentUserId;
+            PRINT 'Invalid password (Admin account — lockout protection does not apply).';
+            RETURN;
+        END
+
+        IF (@CurrentFailedCount >= @MaxLogin)
+        BEGIN
+            UPDATE USERS
+            SET  FailedLoginCount = @CurrentFailedCount, Status = 'Locked'
+            WHERE  UserId = @CurrentUserId;
+            INSERT  INTO SecurityLogs (UserId, ActionType, Description)  
+            VALUES   (@CurrentUserId, 'ACCOUNT_LOCKED', 'Account locked due to consecutive failed login attempts.');
+            PRINT 'Account has been LOCKED due to multiple failed attempts!';
+        END
+        ELSE
+        BEGIN
+            UPDATE USERS
+            SET    FailedLoginCount = @CurrentFailedCount
+            WHERE  UserId = @CurrentUserId;
+            PRINT 'Invalid password. Attempt recorded.';
+        END
+    END
+    ELSE
+    BEGIN
+        PRINT 'User not found!';
+    END
+END
 
 GO
 --3rd main
