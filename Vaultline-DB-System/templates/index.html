@@ -73,11 +73,13 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
 
 .field{ margin-bottom:16px; position:relative; }
 .field label{ display:block; font-size:11.5px; color:var(--text-dim); margin-bottom:6px; text-transform:uppercase; font-family:var(--font-mono); }
-.field input, .field select{
+.field input, .field select, .field textarea{
     width:100%; padding:12px 14px; border-radius:8px; background:var(--panel-2);
     border:1px solid var(--border); color:var(--text); font-size:14px; outline:none; transition:.2s ease;
+    font-family:inherit;
 }
-.field input:focus, .field select:focus{ border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-soft); }
+.field textarea{ resize:vertical; min-height:90px; }
+.field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-soft); }
 .input-with-eye{ position:relative; display:flex; align-items:center; }
 .input-with-eye input{ padding-right:42px; }
 .eye-btn{
@@ -95,6 +97,23 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
 .btn:hover{ background:#DDB62E; transform:translateY(-2px); box-shadow:0 10px 24px -8px rgba(201,162,39,.45); }
 .btn:active{ transform:translateY(0); }
 .btn-sm{ padding:8px 14px; font-size:12px; width:auto; }
+.btn-outline{
+    background:transparent; border:1px solid var(--border); color:var(--text-dim);
+}
+.btn-outline:hover{ border-color:var(--gold); color:var(--gold); background:transparent; box-shadow:none; transform:none; }
+.btn-rose{ background:var(--rose); color:#fff; }
+.btn-rose:hover{ background:#c94a26; box-shadow:0 10px 24px -8px rgba(228,87,46,.45); }
+
+.complaint-link-box{
+    margin-top:18px; padding-top:16px; border-top:1px solid var(--border-soft); text-align:center;
+}
+.complaint-link-box p{ font-size:12px; color:var(--text-faint); margin-bottom:8px; }
+.complaint-link{
+    display:inline-block; font-size:13px; color:var(--gold); font-weight:600; cursor:pointer;
+    padding:8px 14px; border-radius:8px; border:1px solid rgba(201,162,39,.3); background:var(--gold-soft);
+    transition:.18s ease;
+}
+.complaint-link:hover{ background:rgba(201,162,39,.22); transform:translateY(-1px); }
 
 .modal-overlay{
     display:none; position:fixed; inset:0; z-index:50; background:rgba(6,8,11,.72);
@@ -106,6 +125,7 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
     border:1px solid var(--border); border-radius:16px; padding:34px; position:relative;
     box-shadow:0 30px 70px rgba(0,0,0,.5); animation:cardRise .35s cubic-bezier(.16,1,.3,1);
 }
+.modal-card.wide{ max-width:640px; }
 .modal-close{
     position:absolute; top:16px; right:16px; width:28px; height:28px; border-radius:50%;
     display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid var(--border); color:var(--text-dim); background:transparent;
@@ -189,6 +209,24 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
 .note-box{ background:var(--gold-soft); border:1px solid rgba(201,162,39,.3); border-radius:8px; padding:12px; font-size:12px; color:var(--gold); }
 .note-box.rose{ background:var(--rose-soft); border-color:rgba(228,87,46,.3); color:var(--rose); }
 .loading-text{ color:var(--text-faint); font-family:var(--font-mono); font-size:11px; }
+.action-link{ font-size:11.5px; color:var(--gold); cursor:pointer; font-weight:600; margin-right:10px; }
+.action-link:hover{ text-decoration:underline; }
+.action-link.rose{ color:var(--rose); }
+.detail-box{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; font-size:12.5px; margin-bottom:12px; line-height:1.6; }
+.detail-box b{ color:var(--text); }
+
+.filter-bar{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.filter-bar input[type="text"]{
+    flex:1; min-width:180px; padding:10px 12px; border-radius:8px; background:var(--panel-2);
+    border:1px solid var(--border); color:var(--text); font-size:13px; outline:none;
+}
+.filter-bar select{
+    padding:10px 12px; border-radius:8px; background:var(--panel-2);
+    border:1px solid var(--border); color:var(--text); font-size:13px; outline:none;
+}
+.filter-bar input[type="text"]:focus, .filter-bar select:focus{ border-color:var(--gold); }
+
+.flag-tag{ font-size:10px; color:var(--gold); font-family:var(--font-mono); margin-left:6px; }
 
 @media(max-width:1100px){ .kpi-row-6{ grid-template-columns:repeat(3,1fr); } .main{ padding:26px 24px 50px; } }
 @media(max-width:900px){ #app.active{ flex-direction:column; } .sidebar{ position:relative; width:100%; height:auto; border-right:0; border-bottom:1px solid var(--border); } .grid-2, .grid-equal{ grid-template-columns:1fr; } }
@@ -210,27 +248,39 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
         </div>
         <h1 class="login-title">Welcome Back</h1>
         <p class="login-desc">Access your banking portal.</p>
-        <div class="field">
-            <label for="login-id">Email</label>
-            <input type="email" id="login-id" placeholder="name@vaultline.com" autocomplete="username">
-        </div>
-        <div class="field">
-            <label for="login-pass">Password</label>
-            <div class="input-with-eye">
-                <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
-                <button type="button" class="eye-btn" onclick="togglePasswordVisibility('login-pass', this)" aria-label="Toggle password view">
-                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
+        
+        <form id="login-form" autocomplete="off" onsubmit="event.preventDefault(); doLogin();">
+            <input type="text" style="display:none" aria-hidden="true">
+            <input type="password" style="display:none" aria-hidden="true">
+
+            <div class="field">
+                <label for="login-id">Email</label>
+                <input type="email" id="login-id" name="vlt_user_email" placeholder="name@vaultline.com" autocomplete="off">
             </div>
-        </div>
-        <div id="login-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
-        <div style="text-align:right;margin-bottom:14px;margin-top:-6px;">
-            <span style="color:var(--gold);font-size:12px;cursor:pointer;" onclick="openForgotModal()">Forgot Password?</span>
-        </div>
-        <button class="btn" id="login-btn" onclick="doLogin()">Sign In</button>
+            <div class="field">
+                <label for="login-pass">Password</label>
+                <div class="input-with-eye">
+                    <input type="password" id="login-pass" name="vlt_user_pass" placeholder="••••••••" autocomplete="new-password">
+                    <button type="button" class="eye-btn" onclick="togglePasswordVisibility('login-pass', this)" aria-label="Toggle password view">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div style="text-align:right;margin-bottom:14px;margin-top:-6px;">
+                <span style="color:var(--gold);font-size:12px;cursor:pointer;" onclick="openForgotModal()">Forgot Password?</span>
+            </div>
+            <div id="login-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
+            <button type="submit" class="btn" id="login-btn">Sign In</button>
+        </form>
+
         <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-faint);">
             New user?
             <span style="color:var(--teal);cursor:pointer;font-weight:600;" onclick="openSignup()">Create Wallet</span>
+        </div>
+
+        <div class="complaint-link-box">
+            <p>Having trouble accessing your account?</p>
+            <span class="complaint-link" onclick="openComplaintModal()">Submit an Account Complaint</span>
         </div>
     </div>
 </div>
@@ -241,54 +291,115 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
         <button class="modal-close" onclick="closeSignup()" aria-label="Close registration">✕</button>
         <h1 class="login-title" style="font-size:22px;">Open a Wallet</h1>
         <p class="login-desc">Instant account & ledger generation.</p>
-        <div class="field">
-            <label for="signup-name">Full Name</label>
-            <input type="text" id="signup-name" placeholder="Enter your full name" autocomplete="name">
-        </div>
-        <div class="field">
-            <label for="signup-email">Email</label>
-            <input type="email" id="signup-email" placeholder="user@vaultline.com" autocomplete="email">
-        </div>
-        <div class="field">
-            <label for="signup-pass">Password</label>
-            <div class="input-with-eye">
-                <input type="password" id="signup-pass" placeholder="Create a strong password" autocomplete="new-password">
-                <button type="button" class="eye-btn" onclick="togglePasswordVisibility('signup-pass', this)" aria-label="Toggle password view">
-                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
+        <form autocomplete="off" onsubmit="event.preventDefault(); submitSignup();">
+            <div class="field">
+                <label for="signup-name">Full Name</label>
+                <input type="text" id="signup-name" placeholder="Enter your full name" autocomplete="off">
             </div>
-        </div>
-        <div class="field">
-            <label for="signup-role">Account Type</label>
-            <select id="signup-role">
-                <option value="Customer">Customer Account</option>
-                <option value="Merchant">Merchant Account</option>
-            </select>
-        </div>
-        <div id="signup-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
-        <button class="btn" id="signup-btn" onclick="submitSignup()">Open Account</button>
+            <div class="field">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" placeholder="user@vaultline.com" autocomplete="off">
+            </div>
+            <div class="field">
+                <label for="signup-pass">Password</label>
+                <div class="input-with-eye">
+                    <input type="password" id="signup-pass" placeholder="Create a strong password" autocomplete="new-password">
+                    <button type="button" class="eye-btn" onclick="togglePasswordVisibility('signup-pass', this)" aria-label="Toggle password view">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="field">
+                <label for="signup-role">Account Type</label>
+                <select id="signup-role">
+                    <option value="Customer">Customer Account</option>
+                    <option value="Merchant">Merchant Account</option>
+                </select>
+            </div>
+            <div id="signup-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
+            <button type="submit" class="btn" id="signup-btn">Open Account</button>
+        </form>
     </div>
 </div>
+
 <!-- FORGOT PASSWORD MODAL -->
 <div class="modal-overlay" id="forgot-overlay" role="dialog" aria-modal="true">
     <div class="modal-card">
         <button class="modal-close" onclick="closeForgotModal()" aria-label="Close modal">✕</button>
         <h1 class="login-title" style="font-size:20px;">Reset Password</h1>
         <p class="login-desc">Enter your email and set a new password.</p>
-        
-        <div class="field">
-            <label for="reset-email">Registered Email</label>
-            <input type="email" id="reset-email" placeholder="user@vaultline.com">
-        </div>
-        <div class="field">
-            <label for="reset-new-pass">New Password</label>
-            <input type="password" id="reset-new-pass" placeholder="Enter new password">
-        </div>
-        
-        <div id="reset-msg" class="note-box" style="display:none;margin-bottom:12px;"></div>
-        <button class="btn" id="reset-btn" onclick="submitPasswordReset()">Update Password</button>
+        <form autocomplete="off" onsubmit="event.preventDefault(); submitPasswordReset();">
+            <div class="field">
+                <label for="reset-email">Registered Email</label>
+                <input type="email" id="reset-email" placeholder="user@vaultline.com" autocomplete="off">
+            </div>
+            <div class="field">
+                <label for="reset-new-pass">New Password</label>
+                <input type="password" id="reset-new-pass" placeholder="Enter new password" autocomplete="new-password">
+            </div>
+            <div id="reset-msg" class="note-box" style="display:none;margin-bottom:12px;"></div>
+            <button type="submit" class="btn" id="reset-btn">Update Password</button>
+        </form>
     </div>
 </div>
+
+<!-- ACCOUNT COMPLAINT / UNLOCK REQUEST MODAL -->
+<div class="modal-overlay" id="complaint-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card">
+        <button class="modal-close" onclick="closeComplaintModal()" aria-label="Close modal">✕</button>
+        <h1 class="login-title" style="font-size:20px;">Account Unlock Request</h1>
+        <p class="login-desc">Tell us who you are and we'll verify it against your account before an admin reviews it.</p>
+        <form id="complaint-form" autocomplete="off" onsubmit="event.preventDefault(); submitComplaint();">
+            <div class="field">
+                <label for="complaint-name">Full Name</label>
+                <input type="text" id="complaint-name" placeholder="Exactly as registered" autocomplete="off">
+            </div>
+            <div class="field">
+                <label for="complaint-email">Email</label>
+                <input type="email" id="complaint-email" placeholder="user@vaultline.com" autocomplete="off">
+            </div>
+            <div class="field">
+                <label for="complaint-account">Account Number / UserId</label>
+                <input type="text" id="complaint-account" placeholder="e.g. VL-10493 or 1005" autocomplete="off">
+            </div>
+            <div class="field">
+                <label for="complaint-text">Complaint / Query</label>
+                <textarea id="complaint-text" placeholder="My account was locked after multiple unsuccessful login attempts..."></textarea>
+            </div>
+            <div id="complaint-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
+            <div id="complaint-success" class="note-box" style="display:none;margin-bottom:12px;"></div>
+            <button type="submit" class="btn" id="complaint-btn">Submit Complaint</button>
+        </form>
+
+        <div class="complaint-link-box" style="margin-top:20px;">
+            <p>Already submitted one? Check its status below.</p>
+            <div style="display:flex;gap:8px;">
+                <input type="text" id="track-complaint-id" placeholder="Complaint ID" style="flex:1;padding:10px 12px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);font-size:13px;">
+                <button type="button" class="btn btn-sm btn-outline" onclick="checkComplaintStatus()">Check</button>
+            </div>
+            <div id="track-result" class="note-box" style="display:none;margin-top:10px;text-align:left;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ADMIN: COMPLAINT REVIEW MODAL -->
+<div class="modal-overlay" id="review-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card wide">
+        <button class="modal-close" onclick="closeReviewModal()" aria-label="Close modal">✕</button>
+        <h1 class="login-title" style="font-size:20px;">Review Complaint</h1>
+        <div id="review-detail" class="detail-box">Loading…</div>
+        <div class="field">
+            <label for="review-remarks">Admin Remarks</label>
+            <textarea id="review-remarks" placeholder="Enter remarks explaining your decision..."></textarea>
+        </div>
+        <div id="review-msg" class="note-box" style="display:none;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-sm" id="review-unlock-btn" style="flex:1;" onclick="doReviewUnlock()">Unlock Account</button>
+            <button class="btn btn-sm btn-rose" id="review-reject-btn" style="flex:1;" onclick="doReviewReject()">Reject Complaint</button>
+        </div>
+    </div>
+</div>
+
 <!-- APP SHELL -->
 <div id="app">
     <aside class="sidebar">
@@ -307,6 +418,7 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
         
         <div class="nav-group-label nav-admin-only" id="nav-group-admin">Governance</div>
         <div class="nav-item nav-admin-only" data-view="fraud" id="nav-item-fraud">Fraud Center</div>
+        <div class="nav-item nav-admin-only" data-view="complaints" id="nav-item-complaints">Unlock Requests</div>
         <div class="nav-item nav-admin-only" data-view="security" id="nav-item-security">Security Logs</div>
         <div class="nav-item nav-admin-only" data-view="analytics" id="nav-item-analytics">Platform Analytics</div>
         
@@ -428,6 +540,16 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
                 </div>
             </div>
             <div class="card">
+                <div class="filter-bar">
+                    <input type="text" id="history-search" placeholder="Search counterparty or account number..." oninput="filterHistory()">
+                    <select id="history-date-filter" onchange="filterHistory()">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="exportHistoryCSV()">Export CSV</button>
+                </div>
                 <div class="table-scroll">
                     <table class="ledger">
                         <thead><tr><th>Transaction Details</th><th>Counterparty Account</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
@@ -467,6 +589,16 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
             </div>
             <div class="card">
                 <div class="section-title">Customer Payment Settlements</div>
+                <div class="filter-bar">
+                    <input type="text" id="merchant-search" placeholder="Search customer or account number..." oninput="filterMerchantPayments()">
+                    <select id="merchant-date-filter" onchange="filterMerchantPayments()">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="exportMerchantCSV()">Export CSV</button>
+                </div>
                 <div class="table-scroll">
                     <table class="ledger">
                         <thead><tr><th>Customer Name</th><th>Account No</th><th>Amount</th><th>Status</th><th>Timestamp</th></tr></thead>
@@ -496,22 +628,65 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
             <div class="grid grid-2" style="margin-bottom:18px;">
                 <div class="card">
                     <div class="section-title">Fraud Triggered Alerts</div>
+                    <div class="filter-bar">
+                        <input type="text" id="fraud-search" placeholder="Search user, email or reason..." oninput="filterFraud()">
+                        <select id="fraud-date-filter" onchange="filterFraud()">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                        </select>
+                    </div>
                     <div class="table-scroll">
                         <table class="ledger">
-                            <thead><tr><th>Alert #</th><th>User</th><th>Risk</th><th>Reason</th><th>Date</th></tr></thead>
-                            <tbody id="fraud-table-body"><tr><td colspan="5"><span class="loading-text">No fraud alerts loaded.</span></td></tr></tbody>
+                            <thead><tr><th>Alert #</th><th>User</th><th>Risk</th><th>Reason</th><th>Date</th><th>Action</th></tr></thead>
+                            <tbody id="fraud-table-body"><tr><td colspan="6"><span class="loading-text">No fraud alerts loaded.</span></td></tr></tbody>
                         </table>
                     </div>
                 </div>
                 <div class="card">
                     <div class="section-title">Manual Account Recovery</div>
-                    <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Reactivate accounts locked by brute force protection via usp_UnlockAccount.</p>
+                    <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Manage user access state (Unlock active status or Freeze suspicious account).</p>
                     <div class="field">
-                        <label for="unlock-email">User Email Address</label>
-                        <input type="email" id="unlock-email" placeholder="user@vaultline.com">
+                        <label for="unlock-email">Select User Account</label>
+                        <select id="unlock-email" style="width:100%;padding:12px 14px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;">
+                            <option value="">-- Choose User --</option>
+                        </select>
                     </div>
-                    <button class="btn btn-sm" id="unlock-btn" onclick="doUnlockAccount()">Unlock Account</button>
+                    <div style="display:flex;gap:10px;margin-top:14px;">
+                        <button class="btn btn-sm" id="unlock-btn" onclick="doUnlockAccount()" style="flex:1;">Unlock Account</button>
+                        <button class="btn btn-sm" id="freeze-btn" onclick="doFreezeAccount()" style="flex:1;background:var(--rose);color:#fff;">Suspend / Freeze</button>
+                    </div>
                     <div id="unlock-msg" class="note-box" style="display:none;margin-top:12px;"></div>
+
+                    <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--border-soft);">
+                        <div class="section-title" style="margin-bottom:8px;">Refund / Reverse a Transaction</div>
+                        <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Enter a Transaction # (from a fraud alert or Security Log) to reverse a completed transfer.</p>
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="refund-txn-id" placeholder="Transaction # e.g. 88012" style="flex:1;padding:10px 12px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);font-size:13px;">
+                            <button type="button" class="btn btn-sm btn-rose" onclick="doRefund()">Refund</button>
+                        </div>
+                        <div id="refund-msg" class="note-box" style="display:none;margin-top:12px;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ACCOUNT UNLOCK REQUESTS (complaints) -->
+        <section class="view" id="view-complaints" data-role="Admin">
+            <div class="page-head">
+                <div>
+                    <div class="eyebrow">Verified Recovery Requests</div>
+                    <h1>Account Unlock Requests</h1>
+                    <p>Every unlock request is verified against your account details before approval.</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="table-scroll">
+                    <table class="ledger">
+                        <thead><tr><th>#</th><th>Submitted Identity</th><th>Verification</th><th>Live Status</th><th>Complaint Status</th><th>Date</th><th>Action</th></tr></thead>
+                        <tbody id="complaints-table-body"><tr><td colspan="7"><span class="loading-text">No unlock requests loaded.</span></td></tr></tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -526,6 +701,15 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
                 </div>
             </div>
             <div class="card">
+                <div class="filter-bar">
+                    <input type="text" id="security-search" placeholder="Search user, action or description..." oninput="filterSecurity()">
+                    <select id="security-date-filter" onchange="filterSecurity()">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                    </select>
+                </div>
                 <div class="table-scroll">
                     <table class="ledger">
                         <thead><tr><th>Log ID</th><th>User</th><th>Action Event</th><th>Details</th><th>Timestamp</th></tr></thead>
@@ -573,9 +757,15 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
 
 let currentUser = null;
 let charts = {};
-let requestState = { login: false, signup: false, transfer: false, unlock: false };
+let requestState = { login: false, signup: false, transfer: false, unlock: false, reset: false, complaint: false, refund: false };
+let activeReviewComplaintId = null;
 
-// Tooltip & Cross-chart Styling Defaults
+// Cached raw datasets for client-side search/date filtering + CSV export
+let allHistoryTxns = [];
+let allMerchantPayments = [];
+let allFraudAlerts = [];
+let allSecurityLogs = [];
+
 const globalChartPlugins = {
     tooltip: {
         enabled: true,
@@ -611,22 +801,24 @@ function numberValue(value){ const n = Number(value); return Number.isFinite(n) 
 function formatNumber(value){ return numberValue(value).toLocaleString(); }
 function formatPKR(value){ return "PKR " + formatNumber(value); }
 
-function sealHtml(status){
+function sealHtml(status, isFlagged){
     const safeStatus = escapeHtml(status || "Unknown");
-    if(["Verified", "Active", "Normal", "Sufficient", "Within Limit", "Enforced"].includes(status)){
-        return '<span class="seal ok">' + safeStatus + '</span>';
+    let cls = "pending";
+    if(["Verified", "Active", "Normal", "Sufficient", "Within Limit", "Enforced", "Resolved"].includes(status)) cls = "ok";
+    if(["Flagged", "Locked", "High", "Fraud Flagged", "Insufficient", "Exceeds Limit", "Suspended", "Failed", "Rejected"].includes(status)) cls = "flag";
+
+    let extra = "";
+    if(status === "Verified" && isFlagged){
+        extra = '<span class="flag-tag">· Flagged for Audit</span>';
     }
-    if(["Flagged", "Locked", "High", "Fraud Flagged", "Insufficient", "Exceeds Limit"].includes(status)){
-        return '<span class="seal flag">' + safeStatus + '</span>';
-    }
-    return '<span class="seal pending">' + safeStatus + '</span>';
+    return '<span class="seal ' + cls + '">' + safeStatus + '</span>' + extra;
 }
 
 function updateAccountStatus(status){
     const element = document.getElementById("account-status-seal");
     if(!element) return;
     const safeStatus = status || "Unknown";
-    element.className = "seal " + (["Active", "Verified"].includes(safeStatus) ? "ok" : ["Locked", "Flagged"].includes(safeStatus) ? "flag" : "pending");
+    element.className = "seal " + (["Active", "Verified"].includes(safeStatus) ? "ok" : ["Locked", "Flagged", "Suspended"].includes(safeStatus) ? "flag" : "pending");
     element.textContent = safeStatus;
 }
 
@@ -644,7 +836,7 @@ async function apiRequest(url, options = {}){
 function getAllowedViews(role){
     if(role === "Customer") return new Set(["dashboard", "send", "history"]);
     if(role === "Merchant") return new Set(["merchant", "send", "history"]);
-    if(role === "Admin") return new Set(["fraud", "security", "analytics"]);
+    if(role === "Admin") return new Set(["fraud", "complaints", "security", "analytics"]);
     return new Set();
 }
 
@@ -666,11 +858,17 @@ function switchView(name){
     const target = document.getElementById("view-" + name);
     if(target) target.classList.add("active");
 
-    if(name === "history") loadHistory();
-    if(name === "fraud"){ loadFraudAlerts(); loadAnalytics(); }
+    if(name === "dashboard" || name === "history") loadHistory();
+    if(name === "fraud"){ 
+        loadFraudAlerts(); 
+        loadAnalyticsDataOnly(); 
+    }
+    if(name === "complaints") loadComplaints();
     if(name === "security") loadSecurityLogs();
     if(name === "merchant") loadMerchantPayments();
-    if(name === "analytics") loadAnalytics();
+    if(name === "analytics"){ 
+        loadFullAnalytics(); 
+    }
     window.scrollTo({ top:0, behavior:"smooth" });
 }
 function safeSwitchView(name){ switchView(name); }
@@ -692,6 +890,41 @@ function configureRoleUI(role){
     } else if(isAdmin){
         document.querySelectorAll(".nav-admin-only").forEach(el => el.style.display = "");
         document.getElementById("nav-group-admin").style.display = "";
+    }
+}
+
+function clearAllForms(){
+    ['login-id', 'login-pass', 'signup-name', 'signup-email', 'signup-pass', 'reset-email', 'reset-new-pass'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+    });
+}
+
+/* Shared by doLogin() success AND checkSession() on page reload */
+function enterApp(result){
+    currentUser = { ...result };
+    document.getElementById("side-name").textContent = result.name || "User";
+    document.getElementById("side-role").textContent = result.role || "Unknown";
+    document.getElementById("side-avatar").textContent = (result.name || "U").charAt(0).toUpperCase();
+    document.getElementById("info-name").textContent = result.name || "—";
+    document.getElementById("info-email").textContent = result.email || "—";
+    updateAccountStatus(result.status || "Active");
+
+    if(result.wallet) updateWalletUI(result.wallet);
+
+    configureRoleUI(result.role);
+    clearAllForms();
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").classList.add("active");
+
+    if(result.role === "Admin"){
+        switchView("fraud");
+    } else if(result.role === "Merchant"){
+        document.getElementById("merch-welcome-title").textContent = "Welcome, " + (result.name || "Merchant");
+        switchView("merchant");
+    } else {
+        document.getElementById("cust-welcome-title").textContent = "Good day, " + (result.name || "Customer");
+        switchView("dashboard");
     }
 }
 
@@ -723,30 +956,7 @@ async function doLogin(){
             errorBox.style.display = "block";
             return;
         }
-
-        currentUser = { ...result };
-        document.getElementById("side-name").textContent = result.name || "User";
-        document.getElementById("side-role").textContent = result.role || "Unknown";
-        document.getElementById("side-avatar").textContent = (result.name || "U").charAt(0).toUpperCase();
-        document.getElementById("info-name").textContent = result.name || "—";
-        document.getElementById("info-email").textContent = result.email || "—";
-        updateAccountStatus(result.status || "Active");
-
-        if(result.wallet) updateWalletUI(result.wallet);
-
-        configureRoleUI(result.role);
-        document.getElementById("login-screen").style.display = "none";
-        document.getElementById("app").classList.add("active");
-
-        if(result.role === "Admin"){
-            switchView("fraud");
-        } else if(result.role === "Merchant"){
-            document.getElementById("merch-welcome-title").textContent = "Welcome, " + (result.name || "Merchant");
-            switchView("merchant");
-        } else {
-            document.getElementById("cust-welcome-title").textContent = "Good day, " + (result.name || "Customer");
-            switchView("dashboard");
-        }
+        enterApp(result);
     }catch(error){
         errorBox.textContent = error.message || "Unable to connect to server.";
         errorBox.style.display = "block";
@@ -754,6 +964,18 @@ async function doLogin(){
         requestState.login = false;
         loginButton.disabled = false;
         loginButton.textContent = "Sign In";
+    }
+}
+
+/* Session persistence — called once on page load, before showing the login screen */
+async function checkSession(){
+    try{
+        const result = await apiRequest("/api/check-session");
+        if(result.success){
+            enterApp(result);
+        }
+    }catch(error){
+        // No active session (or it expired) — normal case, just show the login screen.
     }
 }
 
@@ -795,18 +1017,19 @@ async function doLogout(){
     finally{
         currentUser = null;
         Object.keys(charts).forEach(destroyChart);
+        clearAllForms();
         document.getElementById("app").classList.remove("active");
         document.getElementById("login-screen").style.display = "flex";
-        document.getElementById("login-id").value = "";
-        document.getElementById("login-pass").value = "";
         document.getElementById("login-error").style.display = "none";
     }
 }
 
 function openSignup(){
+    clearAllForms();
     document.getElementById("signup-overlay").classList.add("active");
     document.getElementById("signup-name").focus();
 }
+
 function closeSignup(){
     document.getElementById("signup-overlay").classList.remove("active");
     document.getElementById("signup-error").style.display = "none";
@@ -848,9 +1071,7 @@ async function submitSignup(){
             return;
         }
         alert("Account Created Successfully!\n\nAssigned Account Number: " + (result.account_no || "Generated"));
-        document.getElementById("signup-name").value = "";
-        document.getElementById("signup-email").value = "";
-        document.getElementById("signup-pass").value = "";
+        clearAllForms();
         closeSignup();
     }catch(error){
         errorBox.textContent = error.message || "Server error.";
@@ -862,17 +1083,19 @@ async function submitSignup(){
     }
 }
 
-
 function openForgotModal(){
+    clearAllForms();
     document.getElementById("forgot-overlay").classList.add("active");
     document.getElementById("reset-msg").style.display = "none";
     document.getElementById("reset-email").focus();
 }
+
 function closeForgotModal(){
     document.getElementById("forgot-overlay").classList.remove("active");
 }
 
 async function submitPasswordReset(){
+    if(requestState.reset) return;
     const email = document.getElementById("reset-email").value.trim();
     const new_password = document.getElementById("reset-new-pass").value;
     const msg = document.getElementById("reset-msg");
@@ -885,6 +1108,7 @@ async function submitPasswordReset(){
         return;
     }
 
+    requestState.reset = true;
     btn.disabled = true;
     btn.textContent = "Updating...";
 
@@ -897,8 +1121,7 @@ async function submitPasswordReset(){
         msg.textContent = res.success ? res.message : res.error;
         msg.style.display = "block";
         if(res.success){
-            document.getElementById("reset-email").value = "";
-            document.getElementById("reset-new-pass").value = "";
+            clearAllForms();
             setTimeout(closeForgotModal, 1500);
         }
     }catch(err){
@@ -906,10 +1129,103 @@ async function submitPasswordReset(){
         msg.textContent = err.message;
         msg.style.display = "block";
     }finally{
+        requestState.reset = false;
         btn.disabled = false;
         btn.textContent = "Update Password";
     }
 }
+
+/* ---------------- ACCOUNT COMPLAINT / UNLOCK REQUEST (user side) ---------------- */
+
+function clearComplaintForm(){
+    ['complaint-name', 'complaint-email', 'complaint-account', 'complaint-text', 'track-complaint-id'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+    });
+    document.getElementById("complaint-error").style.display = "none";
+    document.getElementById("complaint-success").style.display = "none";
+    document.getElementById("track-result").style.display = "none";
+}
+
+function openComplaintModal(){
+    clearComplaintForm();
+    document.getElementById("complaint-overlay").classList.add("active");
+    document.getElementById("complaint-name").focus();
+}
+
+function closeComplaintModal(){
+    document.getElementById("complaint-overlay").classList.remove("active");
+}
+
+async function submitComplaint(){
+    if(requestState.complaint) return;
+    const full_name = document.getElementById("complaint-name").value.trim();
+    const email = document.getElementById("complaint-email").value.trim();
+    const account_ref = document.getElementById("complaint-account").value.trim();
+    const complaint_text = document.getElementById("complaint-text").value.trim();
+    const errorBox = document.getElementById("complaint-error");
+    const successBox = document.getElementById("complaint-success");
+    const btn = document.getElementById("complaint-btn");
+
+    errorBox.style.display = "none";
+    successBox.style.display = "none";
+
+    if(!full_name || !email || !account_ref || !complaint_text){
+        errorBox.textContent = "Please fill in all fields.";
+        errorBox.style.display = "block";
+        return;
+    }
+
+    requestState.complaint = true;
+    btn.disabled = true;
+    btn.textContent = "Submitting...";
+
+    try{
+        const result = await apiRequest("/api/complaints", {
+            method:"POST",
+            body:JSON.stringify({ full_name, email, account_ref, complaint_text })
+        });
+        if(!result.success){
+            errorBox.textContent = result.error || "Unable to submit complaint.";
+            errorBox.style.display = "block";
+            return;
+        }
+        successBox.textContent = "Submitted! Your complaint ID is #" + result.complaint_id + ". Save it to check your status.";
+        successBox.style.display = "block";
+        document.getElementById("complaint-form").reset();
+    }catch(error){
+        errorBox.textContent = error.message || "Request failed.";
+        errorBox.style.display = "block";
+    }finally{
+        requestState.complaint = false;
+        btn.disabled = false;
+        btn.textContent = "Submit Complaint";
+    }
+}
+
+async function checkComplaintStatus(){
+    const idVal = document.getElementById("track-complaint-id").value.trim();
+    const box = document.getElementById("track-result");
+    if(!idVal){ return; }
+    try{
+        const result = await apiRequest("/api/complaints/" + encodeURIComponent(idVal) + "/status");
+        box.style.display = "block";
+        if(!result.success){
+            box.className = "note-box rose";
+            box.textContent = result.error || "Complaint not found.";
+            return;
+        }
+        box.className = "note-box";
+        box.innerHTML = `<b>Status:</b> ${escapeHtml(result.status)}<br>` +
+            (result.admin_remarks ? `<b>Remarks:</b> ${escapeHtml(result.admin_remarks)}<br>` : "") +
+            `<span class="ts">Submitted ${escapeHtml(result.created_at)}</span>`;
+    }catch(error){
+        box.style.display = "block";
+        box.className = "note-box rose";
+        box.textContent = error.message || "Unable to check status.";
+    }
+}
+
 async function openDeposit(){
     if(!currentUser || !currentUser.wallet) return;
     const amountText = prompt("Enter deposit amount (PKR):", "5000");
@@ -952,9 +1268,10 @@ function updateTransferChecklist(){
 
     const balance = numberValue(currentUser.wallet.balance);
     const dailyLimit = numberValue(currentUser.wallet.daily_limit);
+    const sentToday = numberValue(currentUser.wallet.sent_today);
 
     setChecklist(balEl, amount <= balance ? "ok" : "flag", amount <= balance ? "Sufficient" : "Insufficient");
-    setChecklist(limitEl, amount <= dailyLimit ? "ok" : "flag", amount <= dailyLimit ? "Within Limit" : "Exceeds Limit");
+    setChecklist(limitEl, (sentToday + amount) <= dailyLimit ? "ok" : "flag", (sentToday + amount) <= dailyLimit ? "Within Limit" : "Exceeds Limit");
     setChecklist(threshEl, amount >= 100000 ? "flag" : "ok", amount >= 100000 ? "Fraud Flagged" : "Normal");
 }
 
@@ -986,7 +1303,6 @@ async function doTransfer(){
         hint.textContent = "Success: PKR " + amount.toLocaleString() + " transferred to " + to;
         document.getElementById("send-to").value = "";
         document.getElementById("send-amount").value = "";
-        updateTransferChecklist();
         await refreshWallet();
         loadHistory();
     }catch(error){
@@ -1004,21 +1320,74 @@ function renderCustomerChart(moneyIn, moneyOut){
     if(!canvas) return;
     destroyChart("cust-flow");
     charts["cust-flow"] = new Chart(canvas, {
-        type:"doughnut",
-        data:{
-            labels:["Money In", "Money Out"],
-            datasets:[{ data:[numberValue(moneyIn), numberValue(moneyOut)], backgroundColor:["#2BA89A", "#E4572E"], borderWidth: 0 }]
+        type: "doughnut",
+        data: {
+            labels: ["Money In", "Money Out"],
+            datasets: [{ 
+                data: [numberValue(moneyIn), numberValue(moneyOut)], 
+                backgroundColor: ["#2BA89A", "#E4572E"], 
+                borderWidth: 0 
+            }]
         },
-        options:{
-            responsive:true, maintainAspectRatio:false,
-            plugins:{
+        options: {
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: {
                 ...globalChartPlugins,
-                legend:{ position:"bottom", labels:{ color:"#8B93A1" } }
+                legend: { position: "bottom", labels: { color: "#8B93A1" } }
             }
         }
     });
 }
 
+/* ---------------- Date-range helper shared by all filter bars ---------------- */
+function parseDisplayDate(dateStr){
+    // dateStr is like "27 Aug 2026, 03:01 PM" (format_dt() output from Flask)
+    if(!dateStr) return null;
+    const d = new Date(dateStr.replace(",", ""));
+    return isNaN(d.getTime()) ? null : d;
+}
+function withinDateFilter(dateStr, filterValue){
+    if(filterValue === "all") return true;
+    const d = parseDisplayDate(dateStr);
+    if(!d) return true;
+    const now = new Date();
+    const diffDays = (now - d) / (1000 * 60 * 60 * 24);
+    if(filterValue === "today") return d.toDateString() === now.toDateString();
+    if(filterValue === "7") return diffDays <= 7;
+    if(filterValue === "30") return diffDays <= 30;
+    return true;
+}
+
+/* ---------------- CSV export helper ---------------- */
+function downloadCSV(rows, headers, filename){
+    const escapeCsv = (v) => {
+        const s = (v === null || v === undefined) ? "" : String(v);
+        return '"' + s.replace(/"/g, '""') + '"';
+    };
+    const lines = [headers.map(escapeCsv).join(",")];
+    rows.forEach(r => lines.push(r.map(escapeCsv).join(",")));
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function exportHistoryCSV(){
+    const rows = allHistoryTxns.map(t => [t.id, t.direction === "in" ? "Received" : "Sent", t.counterparty, t.account, t.amount, t.type, t.status, t.date]);
+    downloadCSV(rows, ["Transaction ID", "Direction", "Counterparty", "Account", "Amount (PKR)", "Type", "Status", "Date"], "vaultline-ledger.csv");
+}
+function exportMerchantCSV(){
+    const rows = allMerchantPayments.map(p => [p.id, p.customer, p.account, p.amount, p.status, p.date]);
+    downloadCSV(rows, ["Transaction ID", "Customer", "Account", "Amount (PKR)", "Status", "Date"], "vaultline-merchant-settlements.csv");
+}
+
+/* ---------------- History (customer/merchant ledger) ---------------- */
 async function loadHistory(){
     if(!currentUser) return;
     try{
@@ -1041,35 +1410,53 @@ async function loadHistory(){
 
         renderCustomerChart(moneyIn, moneyOut);
 
-        const rows = Array.isArray(result.transactions) ? result.transactions : [];
+        allHistoryTxns = Array.isArray(result.transactions) ? result.transactions : [];
+
         const recentBody = document.getElementById("recent-ledger-body");
         if(recentBody){
-            recentBody.innerHTML = rows.slice(0,4).map(t => {
+            recentBody.innerHTML = allHistoryTxns.slice(0,4).map(t => {
                 const direction = t.direction === "out" ? "out" : "in";
                 return `<tr>
                     <td><strong>${escapeHtml(t.counterparty)}</strong><br><span class="ts">${escapeHtml(t.type)}</span></td>
                     <td class="amt ${direction}">${direction === "in" ? "+" : "−"} PKR ${formatNumber(t.amount)}</td>
-                    <td>${sealHtml(t.status)}</td>
+                    <td>${sealHtml(t.status, t.is_flagged)}</td>
                 </tr>`;
             }).join("") || `<tr><td colspan="3" style="color:var(--text-faint);">No transactions recorded.</td></tr>`;
         }
 
-        const fullBody = document.getElementById("full-ledger-body");
-        if(fullBody){
-            fullBody.innerHTML = rows.map(t => {
-                const direction = t.direction === "out" ? "out" : "in";
-                return `<tr>
-                    <td><strong>${direction === "out" ? "Sent to " : "Received from "}${escapeHtml(t.counterparty)}</strong><br><span class="ts">${escapeHtml(t.type)} · #${escapeHtml(t.id)}</span></td>
-                    <td><span class="ts">${escapeHtml(t.account)}</span></td>
-                    <td class="amt ${direction}">${direction === "in" ? "+" : "−"} PKR ${formatNumber(t.amount)}</td>
-                    <td>${sealHtml(t.status)}</td>
-                    <td class="ts">${escapeHtml(t.date)}</td>
-                </tr>`;
-            }).join("") || `<tr><td colspan="5" style="color:var(--text-faint);padding:16px;">No ledger records found.</td></tr>`;
-        }
+        filterHistory();
     }catch(e){}
 }
 
+function filterHistory(){
+    const searchEl = document.getElementById("history-search");
+    const dateEl = document.getElementById("history-date-filter");
+    const search = searchEl ? searchEl.value.trim().toLowerCase() : "";
+    const dateFilter = dateEl ? dateEl.value : "all";
+
+    const filtered = allHistoryTxns.filter(t => {
+        const matchesSearch = !search ||
+            (t.counterparty || "").toLowerCase().includes(search) ||
+            (t.account || "").toLowerCase().includes(search);
+        return matchesSearch && withinDateFilter(t.date, dateFilter);
+    });
+
+    const fullBody = document.getElementById("full-ledger-body");
+    if(fullBody){
+        fullBody.innerHTML = filtered.map(t => {
+            const direction = t.direction === "out" ? "out" : "in";
+            return `<tr>
+                <td><strong>${direction === "out" ? "Sent to " : "Received from "}${escapeHtml(t.counterparty)}</strong><br><span class="ts">${escapeHtml(t.type)} · #${escapeHtml(t.id)}</span></td>
+                <td><span class="ts">${escapeHtml(t.account)}</span></td>
+                <td class="amt ${direction}">${direction === "in" ? "+" : "−"} PKR ${formatNumber(t.amount)}</td>
+                <td>${sealHtml(t.status, t.is_flagged)}</td>
+                <td class="ts">${escapeHtml(t.date)}</td>
+            </tr>`;
+        }).join("") || `<tr><td colspan="5" style="color:var(--text-faint);padding:16px;">No matching ledger records found.</td></tr>`;
+    }
+}
+
+/* ---------------- Merchant payments ---------------- */
 async function loadMerchantPayments(){
     if(!currentUser || currentUser.role !== "Merchant") return;
     try{
@@ -1130,65 +1517,289 @@ async function loadMerchantPayments(){
             });
         }
 
-        const body = document.getElementById("merchant-ledger-body");
-        if(body){
-            const payments = Array.isArray(result.payments) ? result.payments : [];
-            body.innerHTML = payments.map(p => `<tr>
-                <td><strong>${escapeHtml(p.customer)}</strong><br><span class="ts">#${escapeHtml(p.id)}</span></td>
-                <td><span class="ts">${escapeHtml(p.account)}</span></td>
-                <td class="amt in">+ PKR ${formatNumber(p.amount)}</td>
-                <td>${sealHtml(p.status)}</td>
-                <td class="ts">${escapeHtml(p.date)}</td>
-            </tr>`).join("") || `<tr><td colspan="5" style="color:var(--text-faint);padding:16px;">No customer settlements yet.</td></tr>`;
-        }
+        allMerchantPayments = Array.isArray(result.payments) ? result.payments : [];
+        filterMerchantPayments();
     }catch(e){}
 }
 
+function filterMerchantPayments(){
+    const searchEl = document.getElementById("merchant-search");
+    const dateEl = document.getElementById("merchant-date-filter");
+    const search = searchEl ? searchEl.value.trim().toLowerCase() : "";
+    const dateFilter = dateEl ? dateEl.value : "all";
+
+    const filtered = allMerchantPayments.filter(p => {
+        const matchesSearch = !search ||
+            (p.customer || "").toLowerCase().includes(search) ||
+            (p.account || "").toLowerCase().includes(search);
+        return matchesSearch && withinDateFilter(p.date, dateFilter);
+    });
+
+    const body = document.getElementById("merchant-ledger-body");
+    if(body){
+        body.innerHTML = filtered.map(p => `<tr>
+            <td><strong>${escapeHtml(p.customer)}</strong><br><span class="ts">#${escapeHtml(p.id)}</span></td>
+            <td><span class="ts">${escapeHtml(p.account)}</span></td>
+            <td class="amt in">+ PKR ${formatNumber(p.amount)}</td>
+            <td>${sealHtml(p.status, p.is_flagged)}</td>
+            <td class="ts">${escapeHtml(p.date)}</td>
+        </tr>`).join("") || `<tr><td colspan="5" style="color:var(--text-faint);padding:16px;">No matching customer settlements.</td></tr>`;
+    }
+}
+
+/* ---------------- Fraud alerts (admin) ---------------- */
 async function loadFraudAlerts(){
     if(!currentUser || currentUser.role !== "Admin") return;
     try{
         const result = await apiRequest("/api/fraud-alerts");
         if(!result.success) return;
-        const body = document.getElementById("fraud-table-body");
-        if(body){
-            const alerts = Array.isArray(result.alerts) ? result.alerts : [];
-            body.innerHTML = alerts.map(f => `<tr>
-                <td><strong>#${escapeHtml(f.id)}</strong></td>
-                <td>${escapeHtml(f.user)}</td>
-                <td>${sealHtml(f.risk_level)}</td>
-                <td>${escapeHtml(f.reason)}</td>
-                <td class="ts">${escapeHtml(f.created_at)}</td>
-            </tr>`).join("") || `<tr><td colspan="5" style="color:var(--text-faint);">No fraud alerts registered.</td></tr>`;
+
+        allFraudAlerts = Array.isArray(result.alerts) ? result.alerts : [];
+        filterFraud();
+
+        const select = document.getElementById("unlock-email");
+        if(select){
+            const users = Array.isArray(result.users) ? result.users : [];
+            let options = '<option value="">-- Choose User --</option>';
+            users.forEach(u => {
+                const tag = u.status !== 'Active' ? ` [${u.status}]` : '';
+                options += `<option value="${escapeHtml(u.email)}">${escapeHtml(u.name)} (${escapeHtml(u.email)})${tag}</option>`;
+            });
+            select.innerHTML = options;
         }
     }catch(e){}
 }
 
+function filterFraud(){
+    const searchEl = document.getElementById("fraud-search");
+    const dateEl = document.getElementById("fraud-date-filter");
+    const search = searchEl ? searchEl.value.trim().toLowerCase() : "";
+    const dateFilter = dateEl ? dateEl.value : "all";
+
+    const filtered = allFraudAlerts.filter(f => {
+        const matchesSearch = !search ||
+            (f.user || "").toLowerCase().includes(search) ||
+            (f.email || "").toLowerCase().includes(search) ||
+            (f.reason || "").toLowerCase().includes(search);
+        return matchesSearch && withinDateFilter(f.created_at, dateFilter);
+    });
+
+    const body = document.getElementById("fraud-table-body");
+    if(body){
+        body.innerHTML = filtered.map(f => `
+            <tr>
+                <td><strong>#${escapeHtml(f.id)}</strong></td>
+                <td><strong>${escapeHtml(f.user)}</strong></td>
+                <td>${sealHtml(f.risk_level)}</td>
+                <td>${escapeHtml(f.reason)}</td>
+                <td class="ts">${escapeHtml(f.created_at)}</td>
+                <td>${f.txn_id && f.txn_id !== "N/A" ? `<span class="action-link rose" onclick="quickRefund(${f.txn_id})">Refund Txn #${escapeHtml(f.txn_id)}</span>` : `<span class="ts">—</span>`}</td>
+            </tr>
+        `).join("") || `<tr><td colspan="6" style="color:var(--text-faint);">No matching fraud alerts.</td></tr>`;
+    }
+}
+
+function quickRefund(txnId){
+    const input = document.getElementById("refund-txn-id");
+    if(input) input.value = txnId;
+    doRefund();
+}
+
+/* ---------------- Security logs (admin) ---------------- */
 async function loadSecurityLogs(){
     if(!currentUser || currentUser.role !== "Admin") return;
     try{
         const result = await apiRequest("/api/security-logs");
         if(!result.success) return;
-        const body = document.getElementById("security-table-body");
-        if(body){
-            const logs = Array.isArray(result.logs) ? result.logs : [];
-            body.innerHTML = logs.map(s => `<tr>
-                <td><strong>#${escapeHtml(s.id)}</strong></td>
-                <td>${escapeHtml(s.user)}</td>
-                <td><span class="seal pending">${escapeHtml(s.action)}</span></td>
-                <td>${escapeHtml(s.description)}</td>
-                <td class="ts">${escapeHtml(s.timestamp)}</td>
-            </tr>`).join("") || `<tr><td colspan="5" style="color:var(--text-faint);">No security events recorded.</td></tr>`;
-        }
+        allSecurityLogs = Array.isArray(result.logs) ? result.logs : [];
+        filterSecurity();
     }catch(e){}
+}
+
+function filterSecurity(){
+    const searchEl = document.getElementById("security-search");
+    const dateEl = document.getElementById("security-date-filter");
+    const search = searchEl ? searchEl.value.trim().toLowerCase() : "";
+    const dateFilter = dateEl ? dateEl.value : "all";
+
+    const filtered = allSecurityLogs.filter(s => {
+        const matchesSearch = !search ||
+            (s.user || "").toLowerCase().includes(search) ||
+            (s.action || "").toLowerCase().includes(search) ||
+            (s.description || "").toLowerCase().includes(search);
+        return matchesSearch && withinDateFilter(s.timestamp, dateFilter);
+    });
+
+    const body = document.getElementById("security-table-body");
+    if(body){
+        body.innerHTML = filtered.map(s => `<tr>
+            <td><strong>#${escapeHtml(s.id)}</strong></td>
+            <td>${escapeHtml(s.user)}</td>
+            <td><span class="seal pending">${escapeHtml(s.action)}</span></td>
+            <td>${escapeHtml(s.description)}</td>
+            <td class="ts">${escapeHtml(s.timestamp)}</td>
+        </tr>`).join("") || `<tr><td colspan="5" style="color:var(--text-faint);">No matching security events.</td></tr>`;
+    }
+}
+
+/* ---------------- Refund / reverse a transaction (admin) ---------------- */
+async function doRefund(){
+    if(requestState.refund || !currentUser || currentUser.role !== "Admin") return;
+    const input = document.getElementById("refund-txn-id");
+    const msg = document.getElementById("refund-msg");
+    const txnId = input ? input.value.trim() : "";
+
+    if(!txnId){
+        msg.style.display = "block";
+        msg.className = "note-box rose";
+        msg.textContent = "Please enter a Transaction # to refund.";
+        return;
+    }
+
+    if(!confirm(`Refund Transaction #${txnId}? This will reverse the transfer and move the funds back.`)) return;
+
+    requestState.refund = true;
+    try{
+        const result = await apiRequest("/api/admin/refund", {
+            method:"POST",
+            body:JSON.stringify({ transaction_id: txnId })
+        });
+        msg.style.display = "block";
+        msg.className = result.success ? "note-box" : "note-box rose";
+        msg.textContent = result.success ? result.message : result.error;
+        if(result.success){
+            if(input) input.value = "";
+            loadFraudAlerts();
+            loadSecurityLogs();
+            loadAnalyticsDataOnly();
+        }
+    }catch(error){
+        msg.style.display = "block";
+        msg.className = "note-box rose";
+        msg.textContent = error.message || "Refund request failed.";
+    }finally{
+        requestState.refund = false;
+    }
+}
+
+/* ---------------- Unlock requests (complaints) — admin ---------------- */
+
+async function loadComplaints(){
+    if(!currentUser || currentUser.role !== "Admin") return;
+    try{
+        const result = await apiRequest("/api/admin/complaints");
+        if(!result.success) return;
+        const body = document.getElementById("complaints-table-body");
+        if(!body) return;
+        const items = Array.isArray(result.complaints) ? result.complaints : [];
+        body.innerHTML = items.map(c => `
+            <tr>
+                <td><strong>#${escapeHtml(c.id)}</strong></td>
+                <td><strong>${escapeHtml(c.submitted_name)}</strong><br><span class="ts">${escapeHtml(c.submitted_email)} · ${escapeHtml(c.submitted_ref)}</span></td>
+                <td>${sealHtml(c.verification_result)}</td>
+                <td>${sealHtml(c.live_account_status || 'Unknown')}</td>
+                <td>${sealHtml(c.status)}</td>
+                <td class="ts">${escapeHtml(c.created_at)}</td>
+                <td>${c.status === 'Pending' ? `<span class="action-link" onclick="openReviewModal(${c.id})">Review</span>` : `<span class="ts">${escapeHtml(c.reviewed_at || '')}</span>`}</td>
+            </tr>
+        `).join("") || `<tr><td colspan="7" style="color:var(--text-faint);">No unlock requests submitted yet.</td></tr>`;
+    }catch(e){}
+}
+
+async function openReviewModal(complaintId){
+    activeReviewComplaintId = complaintId;
+    document.getElementById("review-remarks").value = "";
+    document.getElementById("review-msg").style.display = "none";
+    document.getElementById("review-detail").textContent = "Loading…";
+    document.getElementById("review-overlay").classList.add("active");
+
+    try{
+        const result = await apiRequest("/api/admin/complaints");
+        const c = (result.complaints || []).find(x => x.id === complaintId);
+        if(!c){
+            document.getElementById("review-detail").textContent = "Complaint not found.";
+            return;
+        }
+        document.getElementById("review-detail").innerHTML =
+            `<b>Submitted Name:</b> ${escapeHtml(c.submitted_name)}<br>` +
+            `<b>Submitted Email:</b> ${escapeHtml(c.submitted_email)}<br>` +
+            `<b>Submitted Account/UserId:</b> ${escapeHtml(c.submitted_ref)}<br>` +
+            `<b>Complaint:</b> ${escapeHtml(c.complaint_text)}<br><br>` +
+            `<b>Verification Result:</b> ${escapeHtml(c.verification_result)}<br>` +
+            `<b>Resolved UserId:</b> ${c.verified_user_id ? escapeHtml(c.verified_user_id) : '— not resolved —'}<br>` +
+            `<b>Live Account Status:</b> ${escapeHtml(c.live_account_status || 'Unknown')}`;
+    }catch(e){
+        document.getElementById("review-detail").textContent = "Failed to load complaint details.";
+    }
+}
+
+function closeReviewModal(){
+    document.getElementById("review-overlay").classList.remove("active");
+    activeReviewComplaintId = null;
+}
+
+async function doReviewUnlock(){
+    if(!activeReviewComplaintId) return;
+    const remarks = document.getElementById("review-remarks").value.trim();
+    const msg = document.getElementById("review-msg");
+    try{
+        const result = await apiRequest(`/api/admin/complaints/${activeReviewComplaintId}/unlock`, {
+            method:"POST",
+            body: JSON.stringify({ remarks })
+        });
+        msg.style.display = "block";
+        msg.className = result.success ? "note-box" : "note-box rose";
+        msg.textContent = result.success ? result.message : result.error;
+        if(result.success){
+            loadComplaints();
+            loadFraudAlerts();
+            loadSecurityLogs();
+            loadAnalyticsDataOnly();
+            setTimeout(closeReviewModal, 1200);
+        }
+    }catch(error){
+        msg.style.display = "block";
+        msg.className = "note-box rose";
+        msg.textContent = error.message || "Unlock failed.";
+    }
+}
+
+async function doReviewReject(){
+    if(!activeReviewComplaintId) return;
+    const remarks = document.getElementById("review-remarks").value.trim();
+    const msg = document.getElementById("review-msg");
+    try{
+        const result = await apiRequest(`/api/admin/complaints/${activeReviewComplaintId}/reject`, {
+            method:"POST",
+            body: JSON.stringify({ remarks })
+        });
+        msg.style.display = "block";
+        msg.className = result.success ? "note-box" : "note-box rose";
+        msg.textContent = result.success ? result.message : result.error;
+        if(result.success){
+            loadComplaints();
+            setTimeout(closeReviewModal, 1200);
+        }
+    }catch(error){
+        msg.style.display = "block";
+        msg.className = "note-box rose";
+        msg.textContent = error.message || "Reject failed.";
+    }
 }
 
 async function doUnlockAccount(){
     if(requestState.unlock || !currentUser || currentUser.role !== "Admin") return;
-    const email = document.getElementById("unlock-email").value.trim();
+    const select = document.getElementById("unlock-email");
+    const email = select ? select.value.trim() : "";
     const msg = document.getElementById("unlock-msg");
     const button = document.getElementById("unlock-btn");
 
-    if(!email){ msg.style.display = "block"; msg.className = "note-box rose"; msg.textContent = "Please enter a user email address."; return; }
+    if(!email){ 
+        msg.style.display = "block"; 
+        msg.className = "note-box rose"; 
+        msg.textContent = "Please select a user account to unlock."; 
+        return; 
+    }
 
     requestState.unlock = true;
     button.disabled = true;
@@ -1202,7 +1813,8 @@ async function doUnlockAccount(){
         msg.style.display = "block";
         msg.className = result.success ? "note-box" : "note-box rose";
         msg.textContent = result.success ? result.message : result.error;
-        loadAnalytics();
+        loadFraudAlerts();
+        loadAnalyticsDataOnly();
         loadSecurityLogs();
     }catch(error){
         msg.style.display = "block";
@@ -1215,11 +1827,52 @@ async function doUnlockAccount(){
     }
 }
 
-function destroyChart(id){
-    if(charts[id]){ try{ charts[id].destroy(); }catch(e){} delete charts[id]; }
+async function doFreezeAccount(){
+    if(!currentUser || currentUser.role !== "Admin") return;
+    const select = document.getElementById("unlock-email");
+    const email = select ? select.value.trim() : "";
+    const msg = document.getElementById("unlock-msg");
+    const button = document.getElementById("freeze-btn");
+
+    if(!email){ 
+        msg.style.display = "block"; 
+        msg.className = "note-box rose"; 
+        msg.textContent = "Please select a user account to suspend."; 
+        return; 
+    }
+
+    button.disabled = true;
+    button.textContent = "Freezing...";
+
+    try{
+        const result = await apiRequest("/api/freeze-account", {
+            method:"POST",
+            body:JSON.stringify({ email: email })
+        });
+        msg.style.display = "block";
+        msg.className = result.success ? "note-box" : "note-box rose";
+        msg.textContent = result.success ? result.message : result.error;
+        loadFraudAlerts();
+        loadAnalyticsDataOnly();
+        loadSecurityLogs();
+    }catch(error){
+        msg.style.display = "block";
+        msg.className = "note-box rose";
+        msg.textContent = error.message || "Freeze request failed.";
+    }finally{
+        button.disabled = false;
+        button.textContent = "Suspend / Freeze";
+    }
 }
 
-async function loadAnalytics(){
+function destroyChart(id){
+    if(charts[id]){ 
+        try{ charts[id].destroy(); }catch(e){} 
+        delete charts[id]; 
+    }
+}
+
+async function loadAnalyticsDataOnly(){
     if(!currentUser || currentUser.role !== "Admin") return;
     try{
         const result = await apiRequest("/api/analytics");
@@ -1238,11 +1891,20 @@ async function loadAnalytics(){
         if(kv) kv.textContent = formatPKR(result.total_volume);
         if(kl) kl.textContent = result.locked_accounts || 0;
         if(kf) kf.textContent = result.total_flags || 0;
+    }catch(e){}
+}
+
+async function loadFullAnalytics(){
+    if(!currentUser || currentUser.role !== "Admin") return;
+    try{
+        const result = await apiRequest("/api/analytics");
+        if(!result.success) return;
+
+        loadAnalyticsDataOnly();
 
         const gold = "#C9A227", teal = "#2BA89A", rose = "#E4572E", textDim = "#8B93A1";
         const daily = Array.isArray(result.daily) ? result.daily : [];
 
-        // 1. DAILY VOLUME
         const dailyCanvas = document.getElementById("chart-daily");
         if(dailyCanvas){
             destroyChart("daily");
@@ -1291,7 +1953,6 @@ async function loadAnalytics(){
             });
         }
 
-        // 2. TRANSACTION TYPES
         const typeCanvas = document.getElementById("chart-type");
         if(typeCanvas){
             destroyChart("type");
@@ -1324,7 +1985,6 @@ async function loadAnalytics(){
             });
         }
 
-        // 3. DAILY COUNT
         const countCanvas = document.getElementById("chart-count");
         if(countCanvas){
             destroyChart("count");
@@ -1370,7 +2030,6 @@ async function loadAnalytics(){
             });
         }
 
-        // 4. RISK PROFILE (CLEANED UP DECIMALS)
         const riskCanvas = document.getElementById("chart-risk");
         if(riskCanvas){
             destroyChart("risk");
@@ -1426,19 +2085,38 @@ document.querySelectorAll(".nav-item").forEach(item => {
     item.addEventListener("click", () => switchView(item.dataset.view));
 });
 
-document.getElementById("login-pass").addEventListener("keydown", event => {
-    if(event.key === "Enter") doLogin();
-});
-
 document.addEventListener("keydown", event => {
     if(event.key === "Escape"){
         const modal = document.getElementById("signup-overlay");
         if(modal && modal.classList.contains("active")) closeSignup();
+        const fModal = document.getElementById("forgot-overlay");
+        if(fModal && fModal.classList.contains("active")) closeForgotModal();
+        const cModal = document.getElementById("complaint-overlay");
+        if(cModal && cModal.classList.contains("active")) closeComplaintModal();
+        const rModal = document.getElementById("review-overlay");
+        if(rModal && rModal.classList.contains("active")) closeReviewModal();
     }
 });
 
 document.getElementById("signup-overlay").addEventListener("click", event => {
     if(event.target.id === "signup-overlay") closeSignup();
+});
+
+document.getElementById("forgot-overlay").addEventListener("click", event => {
+    if(event.target.id === "forgot-overlay") closeForgotModal();
+});
+
+document.getElementById("complaint-overlay").addEventListener("click", event => {
+    if(event.target.id === "complaint-overlay") closeComplaintModal();
+});
+
+document.getElementById("review-overlay").addEventListener("click", event => {
+    if(event.target.id === "review-overlay") closeReviewModal();
+});
+
+window.addEventListener('load', () => {
+    clearAllForms();
+    checkSession();
 });
 </script>
 </body>

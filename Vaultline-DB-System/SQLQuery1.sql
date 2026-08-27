@@ -78,6 +78,31 @@ CREATE TABLE SystemSettings (
     MaxFailedLogins    INT             DEFAULT 3
 );
 
+
+
+CREATE TABLE Complaints (
+    ComplaintId           INT             IDENTITY (1, 1) PRIMARY KEY,
+
+    SubmittedFullName     VARCHAR (80)    NOT NULL,
+    SubmittedEmail        VARCHAR (100)   NOT NULL,
+    SubmittedAccountRef   VARCHAR (30)    NOT NULL,
+    ComplaintText         VARCHAR (1000)  NOT NULL,
+
+    VerifiedUserId         INT            NULL FOREIGN KEY REFERENCES USERS (UserId),
+    VerificationResult     VARCHAR (20)   NOT NULL DEFAULT 'Pending'
+                            CHECK (VerificationResult IN ('Pending', 'Verified', 'Failed')),
+    AccountStatusAtReview  VARCHAR (20)   NULL,
+
+    Status                VARCHAR (20)    NOT NULL DEFAULT 'Pending'
+                           CHECK (Status IN ('Pending', 'Resolved', 'Rejected')),
+    AdminRemarks           VARCHAR (500)  NULL,
+
+    CreatedAt              DATETIME       DEFAULT GETDATE(),
+    ReviewedAt              DATETIME      NULL,
+    ReviewedBy               INT          NULL FOREIGN KEY REFERENCES USERS (UserId)
+);
+GO
+
 -- Initial Settings Insert
 INSERT  INTO SystemSettings (MaxDailyLimit, HighValueThreshold, MaxFailedLogins)
 VALUES                     (50000.00, 100000.00, 3);
@@ -162,6 +187,10 @@ FROM   WALLETS;
 SELECT *
 FROM   TRANSACTIONS;
 
+
+
+
+UPDATE USERS SET STATUS = 'Active' , FailedLoginCount = 0 WHERE Email = 'fuzailahmed30@gmail.com';
 GO
 
     -------------6TH method
@@ -448,6 +477,7 @@ EXECUTE usp_PerformTransfer @SenderWalletId = 5004, @ReceiverWalletId = 5003, @A
 SELECT *FROM FraudAlerts;
 
 SELECT *FROM WALLETS;
+UPDATE USERS SET Status = 'Suspended' WHERE Email = 'fuzailahmed30@gmail.com';
 
 
 GO
@@ -521,29 +551,34 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @TargetUserId INT;
+    DECLARE @CurrentStatus VARCHAR(20);
 
-    SELECT @TargetUserId = UserId FROM USERS WHERE Email = @Email;
+    SELECT @TargetUserId = UserId, @CurrentStatus = Status
+    FROM USERS WHERE Email = @Email;
 
-    IF (@TargetUserId IS NOT NULL)
+    IF (@TargetUserId IS NULL)
     BEGIN
-        UPDATE USERS 
-        SET PasswordHash = @NewPasswordHash, 
-            Status = 'Active', 
-            FailedLoginCount = 0 
-        WHERE UserId = @TargetUserId;
-
-        INSERT INTO SecurityLogs(UserID, ActionType, Description) 
-        VALUES (@TargetUserId, 'PASSWORD_RESET', 'Password successfully reset by user.');
-
-        PRINT 'Password reset successfully!';
+        RAISERROR('ERROR: USER NOT FOUND!', 16, 1);
+        RETURN;
     END
-    ELSE
+
+    IF (@CurrentStatus IN ('Locked', 'Suspended'))
     BEGIN
-        PRINT 'ERROR: USER NOT FOUND!';
+        RAISERROR('ERROR: Account is Locked or Suspended. Self-reset is restricted.', 16, 1);
+        RETURN;
     END
+
+    UPDATE USERS
+    SET PasswordHash = @NewPasswordHash,
+        FailedLoginCount = 0
+    WHERE UserId = @TargetUserId;
+
+    INSERT INTO SecurityLogs (UserID, ActionType, Description)
+    VALUES (@TargetUserId, 'PASSWORD_RESET', 'Password successfully reset by user.');
+
+    PRINT 'Password reset successfully!';
 END;
 GO
-
 -------------8TH main
 EXEC usp_ResetUserPassword 
     @Email = 'hafsa@vaultline.com', 
