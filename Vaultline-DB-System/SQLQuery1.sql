@@ -590,7 +590,7 @@ SELECT * FROM SecurityLogs WHERE ActionType = 'PASSWORD_RESET';
 GO
 
 
-----------------9th main 
+----------------9th method 
 CREATE OR ALTER PROCEDURE usp_RefundTransaction
     @TransactionId INT,
     @AdminUserId INT
@@ -641,3 +641,8 @@ BEGIN
 END;
 GO
 
+--------------------------------9th  main 
+EXEC usp_RefundTransaction @TransactionId = 1, @AdminUserId = 1;
+SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Refund';
+SELECT * FROM SecurityLogs WHERE ActionType = 'TRANSACTION_REFUNDED';
+GO
