@@ -588,3 +588,56 @@ EXEC usp_ResetUserPassword
 SELECT UserId, FullName, Email, Status, FailedLoginCount FROM USERS WHERE Email = 'hafsa@vaultline.com';
 SELECT * FROM SecurityLogs WHERE ActionType = 'PASSWORD_RESET';
 GO
+
+
+----------------9th main 
+CREATE OR ALTER PROCEDURE usp_RefundTransaction
+    @TransactionId INT,
+    @AdminUserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @SenderWalletId INT, @ReceiverWalletId INT, @Amount DECIMAL(18,2), @TType VARCHAR(20);
+
+    SELECT @SenderWalletId = SenderWalletId, @ReceiverWalletId = ReceiverWalletId,
+           @Amount = Amount, @TType = TransactionType
+    FROM TRANSACTIONS WHERE TransactionId = @TransactionId;
+
+    IF (@SenderWalletId IS NULL OR @ReceiverWalletId IS NULL OR @TType <> 'Transfer')
+    BEGIN
+        RAISERROR('Only wallet-to-wallet transfers can be refunded.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (
+        SELECT 1 FROM TRANSACTIONS
+        WHERE TransactionType = 'Refund' AND Amount = @Amount
+              AND SenderWalletId = @ReceiverWalletId AND ReceiverWalletId = @SenderWalletId
+    )
+    BEGIN
+        RAISERROR('This transaction already appears to have a matching refund.', 16, 1);
+        RETURN;
+    END
+
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        UPDATE WALLETS SET Balance = Balance + @Amount WHERE WalletId = @SenderWalletId;
+        UPDATE WALLETS SET Balance = Balance - @Amount WHERE WalletId = @ReceiverWalletId;
+
+        INSERT INTO TRANSACTIONS (SenderWalletId, ReceiverWalletId, Amount, TransactionType, Status)
+        VALUES (@ReceiverWalletId, @SenderWalletId, @Amount, 'Refund', 'Verified');
+
+        INSERT INTO SecurityLogs (UserID, ActionType, Description)
+        VALUES (@AdminUserId, 'TRANSACTION_REFUNDED',
+                CONCAT('Admin refunded Transaction #', @TransactionId, ' amounting to PKR ', @Amount));
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
