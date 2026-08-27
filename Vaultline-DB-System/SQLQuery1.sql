@@ -456,28 +456,25 @@ BEGIN
     INNER JOIN WALLETS AS w
         ON w.WalletId = ISNULL(i.SenderWalletId, i.ReceiverWalletId)
     WHERE i.Amount >= @HighThreshold;
-
-    UPDATE t
-    SET t.Status = 'Flagged'
-    FROM TRANSACTIONS t
-    INNER JOIN inserted i ON t.TransactionId = i.TransactionId
-    WHERE i.Amount >= @HighThreshold;
-END
-
+END;
 GO
+
 ----4th main
 EXEC usp_DepositFunds 
 @WalletId = 5001,
 @Amount = 160000.00;
 
+UPDATE WALLETS SET DailyLimit = 200000.00 WHERE WalletId = 5001;
 EXECUTE usp_PerformTransfer @SenderWalletId = 5001, @ReceiverWalletId = 5002, @Amount = 105000.00;
 
+
+UPDATE WALLETS SET Balance = 150000.00, DailyLimit = 200000.00 WHERE WalletId = 5004;
 EXECUTE usp_PerformTransfer @SenderWalletId = 5004, @ReceiverWalletId = 5003, @Amount = 120000.00;
 
 SELECT *FROM FraudAlerts;
 
-SELECT *FROM WALLETS;
-UPDATE USERS SET Status = 'Suspended' WHERE Email = 'fuzailahmed30@gmail.com';
+SELECT *FROM WALLETS WHERE WalletId IN (5001, 5002, 5003, 5004);
+
 
 
 GO
@@ -487,18 +484,22 @@ AS
 SELECT t.TransactionId,
        ISNULL(uSender.FullName, 'System Deposit') AS SenderName,
        ISNULL(wSender.AccountNo, 'N/A') AS SenderAccount,
-       uReceiver.FullName AS ReceiverName,
-       wReceiver.AccountNo AS ReceiverAccount,
+       ISNULL(uReceiver.FullName, 'System/Withdrawal') AS ReceiverName,
+       ISNULL(wReceiver.AccountNo, 'N/A') AS ReceiverAccount,
        t.Amount,
        t.TransactionType,
        t.Status,
+       CASE WHEN EXISTS (
+                SELECT 1 FROM FraudAlerts fa WHERE fa.TransactionID = t.TransactionId
+            ) THEN 1 ELSE 0 END AS IsFlagged,
        t.TransactionDate
 FROM TRANSACTIONS AS t
 LEFT JOIN WALLETS AS wSender ON t.SenderWalletId = wSender.WalletId
 LEFT JOIN USERS AS uSender ON wSender.UserID = uSender.UserId
-INNER JOIN WALLETS AS wReceiver ON t.ReceiverWalletId = wReceiver.WalletId
-INNER JOIN USERS AS uReceiver ON wReceiver.UserID = uReceiver.UserId;
+LEFT JOIN WALLETS AS wReceiver ON t.ReceiverWalletId = wReceiver.WalletId
+LEFT JOIN USERS AS uReceiver ON wReceiver.UserID = uReceiver.UserId;
 GO
+
 
 --5th main 
 SELECT * FROM   vw_TransactionAuditSummary;
