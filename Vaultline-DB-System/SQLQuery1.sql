@@ -51,6 +51,8 @@ CREATE TABLE TRANSACTIONS (
     TransactionDate  DATETIME        DEFAULT GETDATE()
 );
 
+
+ALTER TABLE TRANSACTIONS ADD OriginalTransactionId INT NULL REFERENCES TRANSACTIONS(TransactionId);
 -- FRAUD ALERTS TABLE
 CREATE TABLE FraudAlerts (
     AlertID       INT           IDENTITY (1, 1) PRIMARY KEY,
@@ -608,13 +610,13 @@ BEGIN
         RETURN;
     END
 
+    -- CHANGE 1: TransactionId specific duplicate check
     IF EXISTS (
         SELECT 1 FROM TRANSACTIONS
-        WHERE TransactionType = 'Refund' AND Amount = @Amount
-              AND SenderWalletId = @ReceiverWalletId AND ReceiverWalletId = @SenderWalletId
+        WHERE TransactionType = 'Refund' AND OriginalTransactionId = @TransactionId
     )
     BEGIN
-        RAISERROR('This transaction already appears to have a matching refund.', 16, 1);
+        RAISERROR('This specific transaction has already been refunded.', 16, 1);
         RETURN;
     END
 
@@ -623,8 +625,9 @@ BEGIN
         UPDATE WALLETS SET Balance = Balance + @Amount WHERE WalletId = @SenderWalletId;
         UPDATE WALLETS SET Balance = Balance - @Amount WHERE WalletId = @ReceiverWalletId;
 
-        INSERT INTO TRANSACTIONS (SenderWalletId, ReceiverWalletId, Amount, TransactionType, Status)
-        VALUES (@ReceiverWalletId, @SenderWalletId, @Amount, 'Refund', 'Verified');
+        -- CHANGE 2: Added OriginalTransactionId column and @TransactionId value
+        INSERT INTO TRANSACTIONS (OriginalTransactionId, SenderWalletId, ReceiverWalletId, Amount, TransactionType, Status)
+        VALUES (@TransactionId, @ReceiverWalletId, @SenderWalletId, @Amount, 'Refund', 'Verified');
 
         INSERT INTO SecurityLogs (UserID, ActionType, Description)
         VALUES (@AdminUserId, 'TRANSACTION_REFUNDED',
@@ -639,9 +642,8 @@ BEGIN
     END CATCH
 END;
 GO
-
 --------------------------------9th  main 
-EXEC usp_RefundTransaction @TransactionId = 88001, @AdminUserId = 1005;
+EXEC usp_RefundTransaction @TransactionId = 88003, @AdminUserId = 1005;
 SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Refund';
 SELECT * FROM SecurityLogs WHERE ActionType = 'TRANSACTION_REFUNDED';
 GO
