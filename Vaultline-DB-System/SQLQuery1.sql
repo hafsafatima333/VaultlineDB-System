@@ -296,10 +296,9 @@ BEGIN
            @SenderDailyLimit = DailyLimit
     FROM   WALLETS
     WHERE  WalletId = @SenderWalletId;
-    IF (@SenderBalance IS NULL
-        OR @SenderBalance < @Amount)
+    IF (@SenderBalance IS NULL OR @SenderBalance < @Amount)
         BEGIN
-            PRINT 'ERROR: INSUFFICIENT BALANCE!';
+            RAISERROR( 'ERROR: INSUFFICIENT BALANCE!' , 16,1);
             RETURN;
         END
     --Add daily transfer limit check in transfer procedure
@@ -642,7 +641,6 @@ END;
 GO
 
 --------------------------------9th  main 
--- Pehle transfer run karein (jo ID 88001 banayega), phir test karein:
 EXEC usp_RefundTransaction @TransactionId = 88001, @AdminUserId = 1005;
 SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Refund';
 SELECT * FROM SecurityLogs WHERE ActionType = 'TRANSACTION_REFUNDED';
