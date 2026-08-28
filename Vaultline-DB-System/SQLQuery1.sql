@@ -642,7 +642,8 @@ END;
 GO
 
 --------------------------------9th  main 
-EXEC usp_RefundTransaction @TransactionId = 1, @AdminUserId = 1;
+-- Pehle transfer run karein (jo ID 88001 banayega), phir test karein:
+EXEC usp_RefundTransaction @TransactionId = 88001, @AdminUserId = 1005;
 SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Refund';
 SELECT * FROM SecurityLogs WHERE ActionType = 'TRANSACTION_REFUNDED';
 GO

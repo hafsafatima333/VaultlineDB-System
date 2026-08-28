@@ -789,7 +789,6 @@ def analytics():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 # ============================================================
 # ACCOUNT UNLOCK COMPLAINT SYSTEM
 # ============================================================
