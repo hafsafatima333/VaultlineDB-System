@@ -36,6 +36,9 @@ button, input, select{ font:inherit; }
 button{ border:0; }
 ::selection{ background:var(--gold-soft); color:var(--gold); }
 
+/* Browser ke default password/eye icons ko disable karne ke liye */
+input::-ms-reveal, input::-ms-clear { display: none; }
+
 .seal{
     display:inline-flex; align-items:center; gap:6px; padding:3px 10px 3px 8px;
     border-radius:999px; font-family:var(--font-mono); font-size:11px;
@@ -78,12 +81,12 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
     border:1px solid var(--border); color:var(--text); font-size:14px; outline:none; transition:.2s ease;
     font-family:inherit;
 }
-.field textarea{ resize:vertical; min-height:90px; }
+.field textarea{ resize:vertical; min-height:90px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; }
 .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-soft); }
 .input-with-eye{ position:relative; display:flex; align-items:center; }
 .input-with-eye input{ padding-right:42px; }
 .eye-btn{
-    position:absolute; right:12px; background:none; border:none; color:var(--text-dim);
+    background:none; border:none; color:var(--text-dim);
     cursor:pointer; display:flex; align-items:center; justify-content:center; padding:4px;
 }
 .eye-btn:hover{ color:var(--text); }
@@ -97,9 +100,7 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
 .btn:hover{ background:#DDB62E; transform:translateY(-2px); box-shadow:0 10px 24px -8px rgba(201,162,39,.45); }
 .btn:active{ transform:translateY(0); }
 .btn-sm{ padding:8px 14px; font-size:12px; width:auto; }
-.btn-outline{
-    background:transparent; border:1px solid var(--border); color:var(--text-dim);
-}
+.btn-outline{ background:transparent; border:1px solid var(--border); color:var(--text-dim); }
 .btn-outline:hover{ border-color:var(--gold); color:var(--gold); background:transparent; box-shadow:none; transform:none; }
 .btn-rose{ background:var(--rose); color:#fff; }
 .btn-rose:hover{ background:#c94a26; box-shadow:0 10px 24px -8px rgba(228,87,46,.45); }
@@ -151,9 +152,33 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
     width:34px; height:34px; border-radius:50%; background:linear-gradient(155deg,var(--teal),#12524b);
     display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700;
 }
-.logout-link{ font-size:11.5px; color:var(--text-faint); margin-top:10px; cursor:pointer; display:inline-block; }
-.logout-link:hover{ color:var(--rose); }
-.main{ flex:1; padding:30px 38px 60px; max-width:1400px; width:100%; }
+.main{ flex:1; padding:30px 38px 60px; max-width:1400px; width:100%; position:relative; }
+
+.top-right-actions {
+    position: absolute;
+    top: 25px;
+    right: 38px;
+    z-index: 10;
+}
+.signout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--gold-soft);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.signout-btn:hover {
+    background: var(--gold);
+    color: #151107;
+    box-shadow: 0 4px 12px rgba(201,162,39,0.3);
+}
 
 .view{ display:none !important; }
 .view.active{ display:block !important; animation:viewFade .4s ease; }
@@ -170,10 +195,17 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
 
 .card{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:22px; }
 .balance-card{ background:linear-gradient(160deg,var(--panel-3),var(--panel)); border:1px solid var(--border); }
-.balance-label{ font-family:var(--font-mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:10px; }
+.balance-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.balance-label{ font-family:var(--font-mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; }
 .balance-amount{ font-family:var(--font-display); font-size:38px; font-weight:600; }
 .balance-amount .cur{ font-size:18px; color:var(--text-dim); margin-right:4px; }
-.balance-sub{ font-size:12.5px; color:var(--text-faint); margin-top:8px; font-family:var(--font-mono); }
+.balance-sub{ 
+    font-size:12.5px; color:var(--text-faint); margin-top:8px; font-family:var(--font-mono);
+    display: inline-block; padding: 4px 8px; border-radius: 6px; transition: all 0.2s ease; cursor: default;
+}
+.balance-sub:hover {
+    color: var(--gold); background: var(--gold-soft); border-color: var(--gold); box-shadow: 0 0 10px rgba(201,162,39,0.2);
+}
 .quick-actions{ display:flex; gap:10px; margin-top:20px; }
 .qa-btn{
     flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--panel-2);
@@ -228,6 +260,27 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
 
 .flag-tag{ font-size:10px; color:var(--gold); font-family:var(--font-mono); margin-left:6px; }
 
+.persistent-complaint-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--panel-2);
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    padding: 10px 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    z-index: 99;
+    font-size: 12px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+}
+.persistent-complaint-badge .badge-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--gold); animation: pulse 1.5s infinite;
+}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.65}
+}
+
 @media(max-width:1100px){ .kpi-row-6{ grid-template-columns:repeat(3,1fr); } .main{ padding:26px 24px 50px; } }
 @media(max-width:900px){ #app.active{ flex-direction:column; } .sidebar{ position:relative; width:100%; height:auto; border-right:0; border-bottom:1px solid var(--border); } .grid-2, .grid-equal{ grid-template-columns:1fr; } }
 @media(max-width:700px){ .kpi-row, .kpi-row-6{ grid-template-columns:repeat(2,1fr); } .modal-card{ padding:28px 22px; } }
@@ -235,6 +288,43 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
 </style>
 </head>
 <body>
+
+<!-- LOCKED ACCOUNT STATUS PAGE -->
+<div id="locked-screen" style="display:none; min-height:100vh; align-items:center; justify-content:center; position:relative; padding:24px;">
+    <div class="login-card" style="text-align:center;">
+        <div class="brand-mark" style="justify-content:center;">
+            <div class="brand-glyph">V</div>
+            <div>
+                <div class="brand-name">Vaultline</div>
+                <div class="brand-sub">Account Security Alert</div>
+            </div>
+        </div>
+        <h1 class="login-title" style="color: var(--rose);">Your Account Is Currently Locked</h1>
+        <p class="login-desc" id="locked-status-desc">Your account is awaiting administrative review and approval due to security protocols.</p>
+        
+        <div id="locked-complaint-info" style="margin: 15px 0; font-family: var(--font-mono); font-size: 13px; color: var(--gold);"></div>
+
+        <div id="unlock-action-container" style="margin-top:20px; display:none;">
+            <div class="note-box" style="margin-bottom:16px;">Account Approved / Unlocked Successfully!</div>
+            <button class="btn" onclick="proceedToResetAfterUnlock()">Login & Set New Password</button>
+        </div>
+        
+      <div class="complaint-link-box" style="margin-top:20px;">
+    <p>Need assistance or want to check your appeal status?</p>
+    <div style="display:flex;flex-direction:column;gap:8px; margin-top:8px;">
+        <input type="email" id="locked-track-email" placeholder="Enter Registered Email" style="width:100%;padding:10px 12px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);font-size:13px;">
+        <div style="display:flex;gap:8px;">
+            <input type="text" id="locked-track-id" placeholder="Enter Complaint ID" style="flex:1;padding:10px 12px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);font-size:13px;">
+            <button type="button" class="btn btn-sm btn-outline" onclick="checkLockedStatusFromScreen()">Check Status</button>
+        </div>
+    </div>
+    <div id="locked-track-result" class="note-box" style="display:none;margin-top:10px;text-align:left;"></div>
+</div>
+        <div style="margin-top: 15px;">
+            <span class="action-link" onclick="backToLoginDirectly()">← Back to Sign In</span>
+        </div>
+    </div>
+</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
@@ -249,29 +339,26 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
         <h1 class="login-title">Welcome Back</h1>
         <p class="login-desc">Access your banking portal.</p>
         
-        <form id="login-form" autocomplete="off" onsubmit="event.preventDefault(); doLogin();">
-            <input type="text" style="display:none" aria-hidden="true">
-            <input type="password" style="display:none" aria-hidden="true">
-
-            <div class="field">
-                <label for="login-id">Email</label>
-                <input type="email" id="login-id" name="vlt_user_email" placeholder="name@vaultline.com" autocomplete="off">
-            </div>
-            <div class="field">
-                <label for="login-pass">Password</label>
-                <div class="input-with-eye">
-                    <input type="password" id="login-pass" name="vlt_user_pass" placeholder="••••••••" autocomplete="new-password">
-                    <button type="button" class="eye-btn" onclick="togglePasswordVisibility('login-pass', this)" aria-label="Toggle password view">
-                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                </div>
-            </div>
-            <div style="text-align:right;margin-bottom:14px;margin-top:-6px;">
-                <span style="color:var(--gold);font-size:12px;cursor:pointer;" onclick="openForgotModal()">Forgot Password?</span>
-            </div>
-            <div id="login-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
-            <button type="submit" class="btn" id="login-btn">Sign In</button>
-        </form>
+     <form id="login-form" autocomplete="off" onsubmit="event.preventDefault(); doLogin();">
+    <div class="field">
+        <label for="login-id">Email</label>
+        <input type="email" id="login-id" name="vlt_login_email" placeholder="name@vaultline.com" autocomplete="off" required value="">
+    </div>
+    <div class="field">
+        <label for="login-pass">Password</label>
+        <div class="input-with-eye">
+            <input type="password" id="login-pass" name="vlt_login_pass" placeholder="••••••••" autocomplete="new-password" required value="">
+            <button type="button" class="eye-btn" onclick="togglePasswordVisibility('login-pass', this)" aria-label="Toggle password view">
+                <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
+    </div>
+    <div style="text-align:right;margin-bottom:14px;margin-top:-6px;">
+        <span style="color:var(--gold);font-size:12px;cursor:pointer;" onclick="openForgotModal()">Forgot Password?</span>
+    </div>
+    <div id="login-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
+    <button type="submit" class="btn" id="login-btn">Sign In</button>
+</form>
 
         <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-faint);">
             New user?
@@ -294,17 +381,26 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
         <form autocomplete="off" onsubmit="event.preventDefault(); submitSignup();">
             <div class="field">
                 <label for="signup-name">Full Name</label>
-                <input type="text" id="signup-name" placeholder="Enter your full name" autocomplete="off">
+                <input type="text" id="signup-name" placeholder="Enter your full name" autocomplete="off" required>
             </div>
             <div class="field">
                 <label for="signup-email">Email</label>
-                <input type="email" id="signup-email" placeholder="user@vaultline.com" autocomplete="off">
+                <input type="email" id="signup-email" placeholder="user@vaultline.com" autocomplete="off" required>
             </div>
             <div class="field">
                 <label for="signup-pass">Password</label>
                 <div class="input-with-eye">
-                    <input type="password" id="signup-pass" placeholder="Create a strong password" autocomplete="new-password">
+                    <input type="password" id="signup-pass" placeholder="Create a strong password" autocomplete="new-password" required>
                     <button type="button" class="eye-btn" onclick="togglePasswordVisibility('signup-pass', this)" aria-label="Toggle password view">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="field">
+                <label for="signup-confirm-pass">Confirm Password</label>
+                <div class="input-with-eye">
+                    <input type="password" id="signup-confirm-pass" placeholder="Re-enter password" autocomplete="new-password" required>
+                    <button type="button" class="eye-btn" onclick="togglePasswordVisibility('signup-confirm-pass', this)" aria-label="Toggle password view">
                         <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
                 </div>
@@ -319,6 +415,28 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
             <div id="signup-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
             <button type="submit" class="btn" id="signup-btn">Open Account</button>
         </form>
+    </div>
+</div>
+
+<!-- SUCCESS CONFIRMATION MODAL -->
+<div class="modal-overlay" id="success-modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card" style="text-align: center;">
+        <div style="font-size: 48px; color: var(--teal); margin-bottom: 15px;">✓</div>
+        <h1 class="login-title" id="success-modal-title" style="font-size:22px;">Complaint Submitted Successfully</h1>
+        <p class="login-desc" id="success-modal-desc" style="margin-bottom: 20px;">Your reference number has been generated.</p>
+        <div id="success-modal-ref" style="font-family: var(--font-mono); font-size: 18px; font-weight: bold; color: var(--gold); background: var(--panel-2); padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border);"></div>
+        <button class="btn" onclick="closeSuccessModalExplicit()">OK</button>
+    </div>
+</div>
+
+<!-- TRANSACTION TRANSFER SUCCESS RECEIPT MODAL -->
+<div class="modal-overlay" id="transfer-receipt-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card" style="text-align: center;">
+        <div style="font-size: 48px; color: var(--teal); margin-bottom: 10px;">✓</div>
+        <h1 class="login-title" style="font-size:22px;">Transfer Successful</h1>
+        <p class="login-desc" style="margin-bottom: 15px;">Funds have been securely transferred via ledger.</p>
+        <div id="receipt-details-box" class="detail-box" style="text-align: left; margin-bottom: 20px;"></div>
+        <button class="btn" onclick="closeTransferReceiptModal()">Done</button>
     </div>
 </div>
 
@@ -359,26 +477,16 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
                 <input type="email" id="complaint-email" placeholder="user@vaultline.com" autocomplete="off">
             </div>
             <div class="field">
-                <label for="complaint-account">Account Number / UserId</label>
-                <input type="text" id="complaint-account" placeholder="e.g. VL-10493 or 1005" autocomplete="off">
-            </div>
+    <label for="complaint-account">Account Number</label>
+    <input type="text" id="complaint-account" placeholder="e.g. VL-17514" autocomplete="off">
+</div>
             <div class="field">
                 <label for="complaint-text">Complaint / Query</label>
                 <textarea id="complaint-text" placeholder="My account was locked after multiple unsuccessful login attempts..."></textarea>
             </div>
             <div id="complaint-error" class="note-box rose" style="display:none;margin-bottom:12px;"></div>
-            <div id="complaint-success" class="note-box" style="display:none;margin-bottom:12px;"></div>
             <button type="submit" class="btn" id="complaint-btn">Submit Complaint</button>
         </form>
-
-        <div class="complaint-link-box" style="margin-top:20px;">
-            <p>Already submitted one? Check its status below.</p>
-            <div style="display:flex;gap:8px;">
-                <input type="text" id="track-complaint-id" placeholder="Complaint ID" style="flex:1;padding:10px 12px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);font-size:13px;">
-                <button type="button" class="btn btn-sm btn-outline" onclick="checkComplaintStatus()">Check</button>
-            </div>
-            <div id="track-result" class="note-box" style="display:none;margin-top:10px;text-align:left;"></div>
-        </div>
     </div>
 </div>
 
@@ -414,7 +522,8 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
         <div class="nav-item nav-customer-only" data-view="dashboard" id="nav-item-dashboard">Dashboard</div>
         <div class="nav-item nav-merchant-only" data-view="merchant" id="nav-item-merchant">Merchant Hub</div>
         <div class="nav-item nav-walletuser-only" data-view="send" id="nav-item-send">Send Funds</div>
-        <div class="nav-item nav-walletuser-only" data-view="history" id="nav-item-history">Ledger Records</div>
+        <div class="nav-item nav-walletuser-only" data-view="history" id="nav-item-history">Transactions</div>
+        <div class="nav-item nav-walletuser-only" data-view="wallet" id="nav-item-wallet">Wallet</div>
         
         <div class="nav-group-label nav-admin-only" id="nav-group-admin">Governance</div>
         <div class="nav-item nav-admin-only" data-view="fraud" id="nav-item-fraud">Fraud Center</div>
@@ -430,43 +539,54 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
                     <div style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono);" id="side-role">—</div>
                 </div>
             </div>
-            <div class="logout-link" onclick="doLogout()">Sign Out →</div>
         </div>
     </aside>
 
     <main class="main">
+        <div class="top-right-actions">
+            <button class="signout-btn" onclick="doLogout()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                Sign Out
+            </button>
+        </div>
+
         <!-- CUSTOMER DASHBOARD -->
         <section class="view" id="view-dashboard" data-role="Customer">
             <div class="page-head">
                 <div>
-                    <div class="eyebrow">Customer Wallet Overview</div>
+                    <div class="eyebrow" id="dash-greeting-time">—</div>
                     <h1 id="cust-welcome-title">Welcome</h1>
-                    <p>Real-time financial status from the ledger.</p>
+                    <p id="dash-live-datetime">Real-time financial status from the ledger.</p>
                 </div>
             </div>
             <div class="kpi-row">
                 <div class="kpi">
-                    <div class="kpi-label">Money In (Received)</div>
-                    <div class="kpi-value" style="color:var(--teal);" id="cust-kpi-in">PKR 0</div>
+                    <div class="kpi-label">Money In</div>
+                    <div class="kpi-value sensitive-val" style="color:var(--teal);" id="cust-kpi-in">••••••••</div>
                 </div>
                 <div class="kpi">
-                    <div class="kpi-label">Money Out (Sent)</div>
-                    <div class="kpi-value" style="color:var(--rose);" id="cust-kpi-out">PKR 0</div>
+                    <div class="kpi-label">Money Out</div>
+                    <div class="kpi-value sensitive-val" style="color:var(--rose);" id="cust-kpi-out">••••••••</div>
                 </div>
                 <div class="kpi">
                     <div class="kpi-label">Total Transactions</div>
                     <div class="kpi-value" id="cust-kpi-count">0</div>
                 </div>
                 <div class="kpi">
-                    <div class="kpi-label">Pending / Flagged</div>
-                    <div class="kpi-value" style="color:var(--gold);" id="cust-kpi-flags">0</div>
+                    <div class="kpi-label">Avg. Incoming Amount</div>
+                    <div class="kpi-value sensitive-val" style="color:var(--gold);" id="cust-kpi-avg">••••••••</div>
                 </div>
             </div>
             <div class="grid grid-2" style="margin-bottom:18px;">
                 <div class="card balance-card">
-                    <div class="balance-label">Available Balance</div>
-                    <div class="balance-amount"><span class="cur">PKR</span><span id="bal-amount">0</span></div>
-                    <div class="balance-sub" id="account-sub">Account Number · —</div>
+                    <div class="balance-header-row">
+                        <div class="balance-label">Current Spendable Balance</div>
+                        <button type="button" class="eye-btn" onclick="toggleBalanceVisibility()" aria-label="Toggle balance visibility">
+                            <svg id="balance-eye-svg" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                    <div class="balance-amount"><span class="cur">PKR</span><span id="bal-amount">••••••••</span></div>
+                    <div class="balance-sub" id="account-sub" title="Account Number">Account Number · —</div>
                     <div class="quick-actions">
                         <div class="qa-btn" onclick="openDeposit()">Deposit Cash</div>
                         <div class="qa-btn" onclick="safeSwitchView('send')">Transfer Funds</div>
@@ -498,6 +618,38 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
             </div>
         </section>
 
+        <!-- WALLET SECTION -->
+        <section class="view" id="view-wallet" data-role="Customer,Merchant">
+            <div class="page-head">
+                <div>
+                    <div class="eyebrow">Detailed Wallet Management</div>
+                    <h1>Wallet Balance</h1>
+                    <p>Secure balance breakdown and funding management.</p>
+                </div>
+            </div>
+            <div class="grid grid-2">
+                <div class="card balance-card">
+                    <div class="balance-header-row">
+                        <div class="balance-label">Primary Ledger Balance</div>
+                        <button type="button" class="eye-btn" onclick="toggleBalanceVisibility()" aria-label="Toggle balance visibility">
+                            <svg class="balance-eye-svg-ref" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                    <div class="balance-amount"><span class="cur">PKR</span><span id="wallet-page-balance">••••••••</span></div>
+                    <div class="balance-sub" id="wallet-page-acc" title="Account Number">Account Number · —</div>
+                    <div class="quick-actions" style="margin-top:20px;">
+                        <div class="qa-btn" onclick="openDeposit()">Deposit Funds</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="section-title">Wallet Limits & Status</div>
+                    <div class="stat-row"><span class="s-label">Daily Transfer Limit</span><span class="s-value" id="wallet-page-limit">0 PKR</span></div>
+                    <div class="stat-row"><span class="s-label">Spent Today</span><span class="s-value sensitive-val" id="wallet-page-spent">••••••••</span></div>
+                    <div class="stat-row"><span class="s-label">Wallet Security State</span><span class="seal ok">Active</span></div>
+                </div>
+            </div>
+        </section>
+
         <!-- SEND MONEY -->
         <section class="view" id="view-send" data-role="Customer,Merchant">
             <div class="page-head">
@@ -517,7 +669,7 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
                         <label for="send-amount">Amount (PKR)</label>
                         <input type="number" id="send-amount" placeholder="0.00" min="0" step="0.01" oninput="updateTransferChecklist()">
                     </div>
-                    <div class="note-box" id="send-hint" style="margin-bottom:14px;">Enter transfer details to begin transaction validation.</div>
+                    <div class="note-box" id="send-hint" style="margin-bottom:14px; display:none;"></div>
                     <button class="btn" id="transfer-btn" onclick="doTransfer()">Authorize & Send</button>
                 </div>
                 <div class="card">
@@ -530,13 +682,13 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
             </div>
         </section>
 
-        <!-- HISTORY -->
+        <!-- TRANSACTIONS SECTION -->
         <section class="view" id="view-history" data-role="Customer,Merchant">
             <div class="page-head">
                 <div>
                     <div class="eyebrow">Audit Trail</div>
-                    <h1>Transaction History</h1>
-                    <p>vw_TransactionAuditSummary immutable ledger entries.</p>
+                    <h1>Transactions</h1>
+                    <p>Comprehensive transaction history and ledger records.</p>
                 </div>
             </div>
             <div class="card">
@@ -563,16 +715,16 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
         <section class="view" id="view-merchant" data-role="Merchant">
             <div class="page-head">
                 <div>
-                    <div class="eyebrow">Merchant Operating Center</div>
+                    <div class="eyebrow" id="merch-greeting-time">—</div>
                     <h1 id="merch-welcome-title">Welcome Merchant</h1>
-                    <p>Commercial incoming settlement pipeline.</p>
+                    <p id="merch-live-datetime">Commercial incoming settlement pipeline.</p>
                 </div>
             </div>
             <div class="kpi-row">
-                <div class="kpi"><div class="kpi-label">Total Revenue</div><div class="kpi-value" style="color:var(--teal);" id="merch-kpi-rev">PKR 0</div></div>
-                <div class="kpi"><div class="kpi-label">Today's Sales</div><div class="kpi-value" id="merch-kpi-today">PKR 0</div></div>
+                <div class="kpi"><div class="kpi-label">Total Revenue</div><div class="kpi-value sensitive-val" style="color:var(--teal);" id="merch-kpi-rev">••••••••</div></div>
+                <div class="kpi"><div class="kpi-label">Today's Sales</div><div class="kpi-value sensitive-val" id="merch-kpi-today">••••••••</div></div>
                 <div class="kpi"><div class="kpi-label">Transactions Count</div><div class="kpi-value" id="merch-kpi-txns">0</div></div>
-                <div class="kpi"><div class="kpi-label">Average Ticket Size</div><div class="kpi-value" id="merch-kpi-avg">PKR 0</div></div>
+                <div class="kpi"><div class="kpi-label">Average Ticket Size</div><div class="kpi-value sensitive-val" id="merch-kpi-avg">••••••••</div></div>
             </div>
             <div class="grid grid-2" style="margin-bottom:18px;">
                 <div class="card chart-card">
@@ -580,9 +732,14 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
                     <div class="chart-wrap"><canvas id="chart-merch-trend"></canvas></div>
                 </div>
                 <div class="card">
-                    <div class="section-title">Merchant Wallet Profile</div>
-                    <div class="stat-row"><span class="s-label">Current Spendable Balance</span><span class="s-value amt in" id="merch-bal">PKR 0</span></div>
-                    <div class="stat-row"><span class="s-label">Assigned Account No</span><span class="s-value" id="merch-acc">—</span></div>
+                    <div class="section-title">
+                        <span>Merchant Wallet Profile</span>
+                        <button type="button" class="eye-btn" onclick="toggleBalanceVisibility()" aria-label="Toggle balance visibility">
+                            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                    <div class="stat-row"><span class="s-label">Current Spendable Balance</span><span class="s-value amt in sensitive-val" id="merch-bal">••••••••</span></div>
+                    <div class="stat-row"><span class="s-label">Assigned Account No</span><span class="s-value" id="merch-acc" title="Account Number"> —</span></div>
                     <div class="stat-row"><span class="s-label">Commercial Limit</span><span class="s-value" id="merch-limit">200,000 PKR</span></div>
                     <div class="stat-row"><span class="s-label">Merchant Status</span><span class="seal ok">Active</span></div>
                 </div>
@@ -672,7 +829,7 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
             </div>
         </section>
 
-        <!-- ACCOUNT UNLOCK REQUESTS (complaints) -->
+        <!-- ACCOUNT UNLOCK REQUESTS -->
         <section class="view" id="view-complaints" data-role="Admin">
             <div class="page-head">
                 <div>
@@ -752,6 +909,15 @@ p.login-desc{ color:var(--text-dim); font-size:13.5px; margin-bottom:24px; line-
     </main>
 </div>
 
+<!-- PERSISTENT COMPLAINT STATUS BADGE -->
+<div id="persistent-complaint-badge" class="persistent-complaint-badge" onclick="openLockedScreenFromBadge()" style="cursor:pointer;" title="Click to view lock status">
+    <div class="badge-dot"></div>
+    <div>
+        <div style="font-weight:600;" id="badge-title">Complaint #—</div>
+        <div style="font-size:11px;color:var(--text-dim);" id="badge-status">Status: Pending Review</div>
+    </div>
+</div>
+
 <script>
 "use strict";
 
@@ -759,8 +925,9 @@ let currentUser = null;
 let charts = {};
 let requestState = { login: false, signup: false, transfer: false, unlock: false, reset: false, complaint: false, refund: false };
 let activeReviewComplaintId = null;
+let balancesVisible = false;
+let latestComplaintData = null;
 
-// Cached raw datasets for client-side search/date filtering + CSV export
 let allHistoryTxns = [];
 let allMerchantPayments = [];
 let allFraudAlerts = [];
@@ -792,6 +959,67 @@ function togglePasswordVisibility(inputId, btn){
         btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
     }
 }
+
+function applyBalanceVisibility() {
+    const maskedVal = "••••••••";
+    
+    document.querySelectorAll(".sensitive-val").forEach(el => {
+        if (balancesVisible) {
+            if (el.dataset.realVal) el.textContent = el.dataset.realVal;
+        } else {
+            el.textContent = maskedVal;
+        }
+    });
+
+    const balanceEl = document.getElementById("bal-amount");
+    if (balanceEl) {
+        balanceEl.textContent = balancesVisible && balanceEl.dataset.realVal ? balanceEl.dataset.realVal : maskedVal;
+    }
+
+    const walletPageBal = document.getElementById("wallet-page-balance");
+    if (walletPageBal) {
+        walletPageBal.textContent = balancesVisible && walletPageBal.dataset.realVal ? walletPageBal.dataset.realVal : maskedVal;
+    }
+}
+
+function toggleBalanceVisibility(){
+    balancesVisible = !balancesVisible;
+    if(currentUser && currentUser.wallet){
+        updateWalletUI(currentUser.wallet);
+    }
+    applyBalanceVisibility();
+}
+
+function updateDynamicGreetingAndTime(){
+    const now = new Date();
+    const hours = now.getHours();
+    let greeting = "Good Day";
+    if(hours >= 4 && hours < 12) greeting = "Good Morning";
+    else if(hours >= 12 && hours < 17) greeting = "Good Afternoon";
+    else if(hours >= 17 && hours < 22) greeting = "Good Evening";
+    else greeting = "Good Night";
+
+    const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const custEyebrow = document.getElementById("dash-greeting-time");
+    const custTitle = document.getElementById("cust-welcome-title");
+    const custDatetime = document.getElementById("dash-live-datetime");
+
+    if(custEyebrow) custEyebrow.textContent = greeting;
+    if(custTitle && currentUser) custTitle.textContent = "Welcome, " + (currentUser.name || "Customer");
+    if(custDatetime) custDatetime.textContent = `${dateStr} | ${timeStr}`;
+
+    const merchEyebrow = document.getElementById("merch-greeting-time");
+    const merchTitle = document.getElementById("merch-welcome-title");
+    const merchDatetime = document.getElementById("merch-live-datetime");
+
+    if(merchEyebrow) merchEyebrow.textContent = greeting;
+    if(merchTitle && currentUser) merchTitle.textContent = "Welcome, " + (currentUser.name || "Merchant");
+    if(merchDatetime) merchDatetime.textContent = `${dateStr} | ${timeStr}`;
+}
+
+setInterval(updateDynamicGreetingAndTime, 1000);
 
 function escapeHtml(value){
     if(value === null || value === undefined) return "";
@@ -829,13 +1057,18 @@ async function apiRequest(url, options = {}){
     });
     let data;
     try{ data = await response.json(); }catch(error){ throw new Error("Server returned an invalid response."); }
-    if(!response.ok){ throw new Error(data.error || data.message || "Request failed."); }
+    if(!response.ok){
+        const err = new Error(data.error || data.message || "Request failed.");
+        err.status = response.status;
+        err.data = data;
+        throw err;
+    }
     return data;
 }
 
 function getAllowedViews(role){
-    if(role === "Customer") return new Set(["dashboard", "send", "history"]);
-    if(role === "Merchant") return new Set(["merchant", "send", "history"]);
+    if(role === "Customer") return new Set(["dashboard", "send", "history", "wallet"]);
+    if(role === "Merchant") return new Set(["merchant", "send", "history", "wallet"]);
     if(role === "Admin") return new Set(["fraud", "complaints", "security", "analytics"]);
     return new Set();
 }
@@ -847,6 +1080,7 @@ function isViewAllowed(viewName){
 
 function switchView(name){
     if(!currentUser) return;
+    balancesVisible = false;
     if(!isViewAllowed(name)){
         const allowed = getAllowedViews(currentUser.role);
         const firstAllowed = [...allowed][0];
@@ -858,7 +1092,21 @@ function switchView(name){
     const target = document.getElementById("view-" + name);
     if(target) target.classList.add("active");
 
+    if(name === "send"){
+        const sendTo = document.getElementById("send-to");
+        const sendAmt = document.getElementById("send-amount");
+        const hint = document.getElementById("send-hint");
+        if(sendTo) sendTo.value = "";
+        if(sendAmt) sendAmt.value = "";
+        if(hint){
+            hint.style.display = "none";
+            hint.textContent = "";
+        }
+        updateTransferChecklist();
+    }
+
     if(name === "dashboard" || name === "history") loadHistory();
+    if(name === "wallet") updateWalletUI(currentUser.wallet);
     if(name === "fraud"){ 
         loadFraudAlerts(); 
         loadAnalyticsDataOnly(); 
@@ -869,6 +1117,8 @@ function switchView(name){
     if(name === "analytics"){ 
         loadFullAnalytics(); 
     }
+    
+    applyBalanceVisibility();
     window.scrollTo({ top:0, behavior:"smooth" });
 }
 function safeSwitchView(name){ switchView(name); }
@@ -894,13 +1144,12 @@ function configureRoleUI(role){
 }
 
 function clearAllForms(){
-    ['login-id', 'login-pass', 'signup-name', 'signup-email', 'signup-pass', 'reset-email', 'reset-new-pass'].forEach(id => {
+    ['login-id', 'login-pass', 'signup-name', 'signup-email', 'signup-pass', 'signup-confirm-pass', 'reset-email', 'reset-new-pass'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.value = '';
     });
 }
 
-/* Shared by doLogin() success AND checkSession() on page reload */
 function enterApp(result){
     currentUser = { ...result };
     document.getElementById("side-name").textContent = result.name || "User";
@@ -914,26 +1163,33 @@ function enterApp(result){
 
     configureRoleUI(result.role);
     clearAllForms();
+    document.getElementById("locked-screen").style.display = "none";
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("app").classList.add("active");
 
+    updateDynamicGreetingAndTime();
+
     if(result.role === "Admin"){
+        hidePersistentBadge();
         switchView("fraud");
-    } else if(result.role === "Merchant"){
-        document.getElementById("merch-welcome-title").textContent = "Welcome, " + (result.name || "Merchant");
-        switchView("merchant");
     } else {
-        document.getElementById("cust-welcome-title").textContent = "Good day, " + (result.name || "Customer");
-        switchView("dashboard");
+        hidePersistentBadge();
+        if(result.role === "Merchant"){
+            switchView("merchant");
+        } else {
+            switchView("dashboard");
+        }
     }
 }
-
 async function doLogin(){
     if(requestState.login) return;
-    const email = document.getElementById("login-id").value.trim();
-    const pass = document.getElementById("login-pass").value;
+    const emailInput = document.getElementById("login-id");
+    const passInput = document.getElementById("login-pass");
     const errorBox = document.getElementById("login-error");
     const loginButton = document.getElementById("login-btn");
+
+    const email = emailInput.value.trim();
+    const pass = passInput.value;
 
     errorBox.style.display = "none";
     if(!email || !pass){
@@ -941,6 +1197,10 @@ async function doLogin(){
         errorBox.style.display = "block";
         return;
     }
+
+    // Browser password manager ko rokne ke liye click hote hi fields khali kar dein
+    passInput.value = "";
+    emailInput.value = "";
 
     requestState.login = true;
     loginButton.disabled = true;
@@ -958,6 +1218,10 @@ async function doLogin(){
         }
         enterApp(result);
     }catch(error){
+        if(error.status === 403 && error.data && (error.data.status === "Locked" || error.data.status === "Suspended")){
+            showLockedAccountScreen(email);
+            return;
+        }
         errorBox.textContent = error.message || "Unable to connect to server.";
         errorBox.style.display = "block";
     }finally{
@@ -967,7 +1231,108 @@ async function doLogin(){
     }
 }
 
-/* Session persistence — called once on page load, before showing the login screen */
+function showLockedAccountScreen(email){
+    document.getElementById("login-screen").style.display = "none";
+    const lockedScreen = document.getElementById("locked-screen");
+    lockedScreen.style.display = "flex";
+    
+    const emailInput = document.getElementById("locked-track-email");
+    if(emailInput) emailInput.value = "";
+    
+    const idInput = document.getElementById("locked-track-id");
+    if(idInput) idInput.value = "";
+    
+    const resBox = document.getElementById("locked-track-result");
+    if(resBox) resBox.style.display = "none";
+
+    checkLockedAccountRealtimeStatus(email);
+}
+
+function openLockedScreenFromBadge(){
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").classList.remove("active");
+    const lockedScreen = document.getElementById("locked-screen");
+    lockedScreen.style.display = "flex";
+    
+    const trackInput = document.getElementById("locked-track-id");
+    if(trackInput) {
+        trackInput.value = "";
+    }
+    const emailInput = document.getElementById("locked-track-email");
+    if(emailInput) {
+        emailInput.value = "";
+    }
+    const resBox = document.getElementById("locked-track-result");
+    if(resBox) {
+        resBox.style.display = "none";
+        resBox.textContent = "";
+    }
+}
+
+async function checkLockedAccountRealtimeStatus(email){
+    try{
+        const res = await apiRequest("/api/check-account-status", {
+            method: "POST",
+            body: JSON.stringify({ email })
+        });
+        const container = document.getElementById("unlock-action-container");
+        const desc = document.getElementById("locked-status-desc");
+        if(res.success && res.status === "Active"){
+            if(container) container.style.display = "block";
+            if(desc) desc.textContent = "Your account has been unlocked by Admin!";
+        } else {
+            if(container) container.style.display = "none";
+            if(desc) desc.textContent = "Your account is currently locked due to failed login attempts. Awaiting review.";
+        }
+    }catch(e){}
+}
+
+async function checkLockedStatusFromScreen(){
+    const email = document.getElementById("locked-track-email").value.trim();
+    const cid = document.getElementById("locked-track-id").value.trim();
+    const resBox = document.getElementById("locked-track-result");
+    
+    if(!email || !cid){
+        resBox.style.display = "block";
+        resBox.className = "note-box rose";
+        resBox.textContent = "Please enter both your registered email and complaint ID.";
+        return;
+    }
+
+    try{
+        const result = await apiRequest("/api/complaints/" + encodeURIComponent(cid) + "/status", {
+            method: "POST",
+            body: JSON.stringify({ email: email })
+        });
+        resBox.style.display = "block";
+        if(!result.success){
+            resBox.className = "note-box rose";
+            resBox.textContent = result.error || "Not found.";
+            return;
+        }
+        resBox.className = "note-box";
+        resBox.innerHTML = `<b>Status:</b> ${escapeHtml(result.status)}<br>${result.admin_remarks ? '<b>Remarks:</b> ' + escapeHtml(result.admin_remarks) : ''}`;
+        if(result.status === 'Resolved'){
+            const container = document.getElementById("unlock-action-container");
+            if(container) container.style.display = "block";
+        }
+    }catch(err){
+        resBox.style.display = "block";
+        resBox.className = "note-box rose";
+        resBox.textContent = err.message || "Unauthorized or invalid details.";
+    }
+}
+
+function proceedToResetAfterUnlock(){
+    document.getElementById("locked-screen").style.display = "none";
+    openForgotModal();
+}
+
+function backToLoginDirectly(){
+    document.getElementById("locked-screen").style.display = "none";
+    document.getElementById("login-screen").style.display = "flex";
+}
+
 async function checkSession(){
     try{
         const result = await apiRequest("/api/check-session");
@@ -975,7 +1340,9 @@ async function checkSession(){
             enterApp(result);
         }
     }catch(error){
-        // No active session (or it expired) — normal case, just show the login screen.
+        if(error.status === 403 && error.data && error.data.status === "Locked"){
+            showLockedAccountScreen("");
+        }
     }
 }
 
@@ -985,20 +1352,44 @@ function updateWalletUI(wallet){
     const accountEl = document.getElementById("account-sub");
     const limitEl = document.getElementById("limit-text");
 
-    if(balanceEl) balanceEl.textContent = formatNumber(wallet.balance);
+    const realBal = formatNumber(wallet.balance);
+
+    if(balanceEl){
+        balanceEl.dataset.realVal = realBal;
+    }
     if(accountEl) accountEl.textContent = "Account Number · " + (wallet.account_no || "—");
     if(limitEl) limitEl.textContent = formatNumber(wallet.daily_limit) + " PKR";
+
+    const walletPageBal = document.getElementById("wallet-page-balance");
+    const walletPageAcc = document.getElementById("wallet-page-acc");
+    const walletPageLimit = document.getElementById("wallet-page-limit");
+    const walletPageSpent = document.getElementById("wallet-page-spent");
+
+    if(walletPageBal){
+        walletPageBal.dataset.realVal = realBal;
+    }
+    if(walletPageAcc) walletPageAcc.textContent = "Account Number · " + (wallet.account_no || "—");
+    if(walletPageLimit) walletPageLimit.textContent = formatNumber(wallet.daily_limit) + " PKR";
+    
+    const realSpent = formatNumber(wallet.sent_today || 0) + " PKR";
+    if(walletPageSpent){
+        walletPageSpent.dataset.realVal = realSpent;
+    }
 
     if(currentUser && currentUser.role === "Merchant"){
         const mBal = document.getElementById("merch-bal");
         const mAcc = document.getElementById("merch-acc");
         const mLim = document.getElementById("merch-limit");
-        if(mBal) mBal.textContent = formatPKR(wallet.balance);
+        const realMBal = formatPKR(wallet.balance);
+        if(mBal){
+            mBal.dataset.realVal = realMBal;
+        }
         if(mAcc) mAcc.textContent = wallet.account_no || "—";
         if(mLim) mLim.textContent = formatNumber(wallet.daily_limit) + " PKR";
     }
     if(currentUser) currentUser.wallet = wallet;
     updateTransferChecklist();
+    applyBalanceVisibility();
 }
 
 async function refreshWallet(){
@@ -1019,8 +1410,10 @@ async function doLogout(){
         Object.keys(charts).forEach(destroyChart);
         clearAllForms();
         document.getElementById("app").classList.remove("active");
+        document.getElementById("locked-screen").style.display = "none";
         document.getElementById("login-screen").style.display = "flex";
         document.getElementById("login-error").style.display = "none";
+        hidePersistentBadge();
     }
 }
 
@@ -1040,13 +1433,19 @@ async function submitSignup(){
     const name = document.getElementById("signup-name").value.trim();
     const email = document.getElementById("signup-email").value.trim();
     const pass = document.getElementById("signup-pass").value;
+    const confirmPass = document.getElementById("signup-confirm-pass").value;
     const role = document.getElementById("signup-role").value;
     const errorBox = document.getElementById("signup-error");
     const signupButton = document.getElementById("signup-btn");
 
     errorBox.style.display = "none";
-    if(!name || !email || !pass){
-        errorBox.textContent = "Please fill all details.";
+    if(!name || !email || !pass || !confirmPass){
+        errorBox.textContent = "Please fill all details including confirmation.";
+        errorBox.style.display = "block";
+        return;
+    }
+    if(pass !== confirmPass){
+        errorBox.textContent = "Passwords do not match!";
         errorBox.style.display = "block";
         return;
     }
@@ -1063,7 +1462,7 @@ async function submitSignup(){
     try{
         const result = await apiRequest("/api/register", {
             method:"POST",
-            body:JSON.stringify({ name: name, email: email, password: pass, role: role })
+            body:JSON.stringify({ name: name, email: email, password: pass, confirm_password: confirmPass, role: role })
         });
         if(!result.success){
             errorBox.textContent = result.error || "Unable to create account.";
@@ -1135,16 +1534,12 @@ async function submitPasswordReset(){
     }
 }
 
-/* ---------------- ACCOUNT COMPLAINT / UNLOCK REQUEST (user side) ---------------- */
-
 function clearComplaintForm(){
-    ['complaint-name', 'complaint-email', 'complaint-account', 'complaint-text', 'track-complaint-id'].forEach(id => {
+    ['complaint-name', 'complaint-email', 'complaint-account', 'complaint-text'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.value = '';
     });
     document.getElementById("complaint-error").style.display = "none";
-    document.getElementById("complaint-success").style.display = "none";
-    document.getElementById("track-result").style.display = "none";
 }
 
 function openComplaintModal(){
@@ -1164,11 +1559,9 @@ async function submitComplaint(){
     const account_ref = document.getElementById("complaint-account").value.trim();
     const complaint_text = document.getElementById("complaint-text").value.trim();
     const errorBox = document.getElementById("complaint-error");
-    const successBox = document.getElementById("complaint-success");
     const btn = document.getElementById("complaint-btn");
 
     errorBox.style.display = "none";
-    successBox.style.display = "none";
 
     if(!full_name || !email || !account_ref || !complaint_text){
         errorBox.textContent = "Please fill in all fields.";
@@ -1190,8 +1583,15 @@ async function submitComplaint(){
             errorBox.style.display = "block";
             return;
         }
-        successBox.textContent = "Submitted! Your complaint ID is #" + result.complaint_id + ". Save it to check your status.";
-        successBox.style.display = "block";
+        
+        closeComplaintModal();
+        showSuccessConfirmationModal(result.complaint_id);
+        
+        if(!currentUser || currentUser.role !== "Admin"){
+            latestComplaintData = { id: result.complaint_id, status: "Pending Review" };
+            updatePersistentBadge(result.complaint_id, "Pending Review");
+        }
+
         document.getElementById("complaint-form").reset();
     }catch(error){
         errorBox.textContent = error.message || "Request failed.";
@@ -1203,27 +1603,49 @@ async function submitComplaint(){
     }
 }
 
-async function checkComplaintStatus(){
-    const idVal = document.getElementById("track-complaint-id").value.trim();
-    const box = document.getElementById("track-result");
-    if(!idVal){ return; }
-    try{
-        const result = await apiRequest("/api/complaints/" + encodeURIComponent(idVal) + "/status");
-        box.style.display = "block";
-        if(!result.success){
-            box.className = "note-box rose";
-            box.textContent = result.error || "Complaint not found.";
-            return;
-        }
-        box.className = "note-box";
-        box.innerHTML = `<b>Status:</b> ${escapeHtml(result.status)}<br>` +
-            (result.admin_remarks ? `<b>Remarks:</b> ${escapeHtml(result.admin_remarks)}<br>` : "") +
-            `<span class="ts">Submitted ${escapeHtml(result.created_at)}</span>`;
-    }catch(error){
-        box.style.display = "block";
-        box.className = "note-box rose";
-        box.textContent = error.message || "Unable to check status.";
+function showSuccessConfirmationModal(complaintId){
+    const overlay = document.getElementById("success-modal-overlay");
+    const refDiv = document.getElementById("success-modal-ref");
+    refDiv.textContent = "Complaint Reference #: " + complaintId;
+    overlay.classList.add("active");
+}
+
+function closeSuccessModalExplicit(){
+    document.getElementById("success-modal-overlay").classList.remove("active");
+}
+
+function showTransferReceiptModal(data){
+    const overlay = document.getElementById("transfer-receipt-overlay");
+    const box = document.getElementById("receipt-details-box");
+    box.innerHTML = `
+        <b>Recipient Account:</b> ${escapeHtml(data.recipient)}<br>
+        <b>Amount Transferred:</b> PKR ${formatNumber(data.amount)}<br>
+        <b>Transaction ID:</b> ${data.txn_id ? "#" + escapeHtml(data.txn_id) : "See Transactions for the recorded ID"}<br>
+        <b>Status:</b> Verified & Settled<br>
+        <span class="ts">Timestamp: ${escapeHtml(data.date)}</span>
+    `;
+    overlay.classList.add("active");
+}
+
+function closeTransferReceiptModal(){
+    document.getElementById("transfer-receipt-overlay").classList.remove("active");
+}
+
+function updatePersistentBadge(id, status){
+    if(currentUser && currentUser.role === "Admin") return;
+    const badge = document.getElementById("persistent-complaint-badge");
+    const title = document.getElementById("badge-title");
+    const stat = document.getElementById("badge-status");
+    if(badge && title && stat){
+        title.textContent = `Complaint #${id}`;
+        stat.textContent = `Status: ${status}`;
+        badge.style.display = "flex";
     }
+}
+
+function hidePersistentBadge(){
+    const badge = document.getElementById("persistent-complaint-badge");
+    if(badge) badge.style.display = "none";
 }
 
 async function openDeposit(){
@@ -1244,6 +1666,7 @@ async function openDeposit(){
         alert("Funds deposited successfully into ledger!");
         await refreshWallet();
         loadHistory();
+        if(currentUser.role === 'Merchant') loadMerchantPayments();
     }catch(error){ alert(error.message || "Deposit request failed."); }
 }
 
@@ -1272,7 +1695,7 @@ function updateTransferChecklist(){
 
     setChecklist(balEl, amount <= balance ? "ok" : "flag", amount <= balance ? "Sufficient" : "Insufficient");
     setChecklist(limitEl, (sentToday + amount) <= dailyLimit ? "ok" : "flag", (sentToday + amount) <= dailyLimit ? "Within Limit" : "Exceeds Limit");
-    setChecklist(threshEl, amount >= 100000 ? "flag" : "ok", amount >= 100000 ? "Fraud Flagged" : "Normal");
+    setChecklist(threshEl, amount > 100000 ? "flag" : "ok", amount > 100000 ? "High Value" : "Normal");
 }
 
 async function doTransfer(){
@@ -1282,8 +1705,8 @@ async function doTransfer(){
     const hint = document.getElementById("send-hint");
     const button = document.getElementById("transfer-btn");
 
-    if(!to){ hint.className = "note-box rose"; hint.textContent = "Please enter a recipient account number."; return; }
-    if(!Number.isFinite(amount) || amount <= 0){ hint.className = "note-box rose"; hint.textContent = "Please enter a valid transfer amount."; return; }
+    if(!to){ hint.style.display="block"; hint.className = "note-box rose"; hint.textContent = "Please enter a recipient account number."; return; }
+    if(!Number.isFinite(amount) || amount <= 0){ hint.style.display="block"; hint.className = "note-box rose"; hint.textContent = "Please enter a valid transfer amount."; return; }
 
     requestState.transfer = true;
     button.disabled = true;
@@ -1295,17 +1718,28 @@ async function doTransfer(){
             body:JSON.stringify({ receiver_account_no: to, amount: amount })
         });
         if(!result.success){
+            hint.style.display = "block";
             hint.className = "note-box rose";
             hint.textContent = result.error || "Transfer failed.";
             return;
         }
-        hint.className = "note-box";
-        hint.textContent = "Success: PKR " + amount.toLocaleString() + " transferred to " + to;
+        hint.style.display = "none";
+        hint.textContent = "";
+
+        showTransferReceiptModal({
+            recipient: to,
+            amount: amount,
+            txn_id: "Settled",
+            date: new Date().toLocaleString()
+        });
+
         document.getElementById("send-to").value = "";
         document.getElementById("send-amount").value = "";
         await refreshWallet();
         loadHistory();
+        if(currentUser.role === 'Merchant') loadMerchantPayments();
     }catch(error){
+        hint.style.display = "block";
         hint.className = "note-box rose";
         hint.textContent = error.message || "Transfer request failed.";
     }finally{
@@ -1340,13 +1774,12 @@ function renderCustomerChart(moneyIn, moneyOut){
     });
 }
 
-/* ---------------- Date-range helper shared by all filter bars ---------------- */
 function parseDisplayDate(dateStr){
-    // dateStr is like "27 Aug 2026, 03:01 PM" (format_dt() output from Flask)
     if(!dateStr) return null;
     const d = new Date(dateStr.replace(",", ""));
     return isNaN(d.getTime()) ? null : d;
 }
+
 function withinDateFilter(dateStr, filterValue){
     if(filterValue === "all") return true;
     const d = parseDisplayDate(dateStr);
@@ -1354,12 +1787,12 @@ function withinDateFilter(dateStr, filterValue){
     const now = new Date();
     const diffDays = (now - d) / (1000 * 60 * 60 * 24);
     if(filterValue === "today") return d.toDateString() === now.toDateString();
+    if(diffDays < 0) return false;
     if(filterValue === "7") return diffDays <= 7;
     if(filterValue === "30") return diffDays <= 30;
     return true;
 }
 
-/* ---------------- CSV export helper ---------------- */
 function downloadCSV(rows, headers, filename){
     const escapeCsv = (v) => {
         const s = (v === null || v === undefined) ? "" : String(v);
@@ -1387,7 +1820,6 @@ function exportMerchantCSV(){
     downloadCSV(rows, ["Transaction ID", "Customer", "Account", "Amount (PKR)", "Status", "Date"], "vaultline-merchant-settlements.csv");
 }
 
-/* ---------------- History (customer/merchant ledger) ---------------- */
 async function loadHistory(){
     if(!currentUser) return;
     try{
@@ -1401,12 +1833,18 @@ async function loadHistory(){
         const inEl = document.getElementById("cust-kpi-in");
         const outEl = document.getElementById("cust-kpi-out");
         const cntEl = document.getElementById("cust-kpi-count");
-        const flgEl = document.getElementById("cust-kpi-flags");
+        const avgEl = document.getElementById("cust-kpi-avg");
 
-        if(inEl) inEl.textContent = formatPKR(moneyIn);
-        if(outEl) outEl.textContent = formatPKR(moneyOut);
+        const realIn = formatPKR(moneyIn);
+        const realOut = formatPKR(moneyOut);
+        
+        const inboundCount = numberValue(metrics.inbound_count);
+        const avgVal = inboundCount > 0 ? formatPKR(Math.round(moneyIn / inboundCount)) : "PKR 0";
+
+        if(inEl){ inEl.dataset.realVal = realIn; }
+        if(outEl){ outEl.dataset.realVal = realOut; }
         if(cntEl) cntEl.textContent = metrics.total_txns || 0;
-        if(flgEl) flgEl.textContent = metrics.pending_flagged || 0;
+        if(avgEl){ avgEl.dataset.realVal = avgVal; }
 
         renderCustomerChart(moneyIn, moneyOut);
 
@@ -1425,6 +1863,7 @@ async function loadHistory(){
         }
 
         filterHistory();
+        applyBalanceVisibility();
     }catch(e){}
 }
 
@@ -1456,7 +1895,6 @@ function filterHistory(){
     }
 }
 
-/* ---------------- Merchant payments ---------------- */
 async function loadMerchantPayments(){
     if(!currentUser || currentUser.role !== "Merchant") return;
     try{
@@ -1464,10 +1902,19 @@ async function loadMerchantPayments(){
         if(!result.success) return;
 
         const metrics = result.metrics || {};
-        document.getElementById("merch-kpi-rev").textContent = formatPKR(metrics.total_revenue);
-        document.getElementById("merch-kpi-today").textContent = formatPKR(metrics.today_sales);
-        document.getElementById("merch-kpi-txns").textContent = metrics.total_txns || 0;
-        document.getElementById("merch-kpi-avg").textContent = formatPKR(Math.round(numberValue(metrics.avg_payment)));
+        const revEl = document.getElementById("merch-kpi-rev");
+        const todayEl = document.getElementById("merch-kpi-today");
+        const txnsEl = document.getElementById("merch-kpi-txns");
+        const avgEl = document.getElementById("merch-kpi-avg");
+
+        const realRev = formatPKR(metrics.total_revenue);
+        const realToday = formatPKR(metrics.today_sales);
+        const realAvg = formatPKR(Math.round(numberValue(metrics.avg_payment)));
+
+        if(revEl){ revEl.dataset.realVal = realRev; }
+        if(todayEl){ todayEl.dataset.realVal = realToday; }
+        if(txnsEl) txnsEl.textContent = metrics.total_txns || 0;
+        if(avgEl){ avgEl.dataset.realVal = realAvg; }
 
         const canvas = document.getElementById("chart-merch-trend");
         if(canvas){
@@ -1519,6 +1966,7 @@ async function loadMerchantPayments(){
 
         allMerchantPayments = Array.isArray(result.payments) ? result.payments : [];
         filterMerchantPayments();
+        applyBalanceVisibility();
     }catch(e){}
 }
 
@@ -1547,7 +1995,6 @@ function filterMerchantPayments(){
     }
 }
 
-/* ---------------- Fraud alerts (admin) ---------------- */
 async function loadFraudAlerts(){
     if(!currentUser || currentUser.role !== "Admin") return;
     try{
@@ -1605,7 +2052,6 @@ function quickRefund(txnId){
     doRefund();
 }
 
-/* ---------------- Security logs (admin) ---------------- */
 async function loadSecurityLogs(){
     if(!currentUser || currentUser.role !== "Admin") return;
     try{
@@ -1642,13 +2088,11 @@ function filterSecurity(){
     }
 }
 
-/* ---------------- Refund / reverse a transaction (admin) ---------------- */
 async function doRefund(){
     if(requestState.refund || !currentUser || currentUser.role !== "Admin") return;
     const input = document.getElementById("refund-txn-id");
     const msg = document.getElementById("refund-msg");
-    const txnId = input ? input.value.trim() : "";
-
+    const txnId = input ? input.value.trim().replace('#', '') : "";
     if(!txnId){
         msg.style.display = "block";
         msg.className = "note-box rose";
@@ -1681,8 +2125,6 @@ async function doRefund(){
         requestState.refund = false;
     }
 }
-
-/* ---------------- Unlock requests (complaints) — admin ---------------- */
 
 async function loadComplaints(){
     if(!currentUser || currentUser.role !== "Admin") return;
@@ -2054,7 +2496,7 @@ async function loadFullAnalytics(){
                     plugins:{
                         ...globalChartPlugins,
                         tooltip: {
-                            ...globalChartPlugins.tooltip,
+                            ...globalChartPlugins.xxTooltip || globalChartPlugins.tooltip,
                             callbacks: {
                                 label: function(context) {
                                     return `Alerts: ${context.raw}`;
@@ -2095,28 +2537,27 @@ document.addEventListener("keydown", event => {
         if(cModal && cModal.classList.contains("active")) closeComplaintModal();
         const rModal = document.getElementById("review-overlay");
         if(rModal && rModal.classList.contains("active")) closeReviewModal();
+        const sModal = document.getElementById("success-modal-overlay");
+        if(sModal && sModal.classList.contains("active")) closeSuccessModalExplicit();
+        const tModal = document.getElementById("transfer-receipt-overlay");
+        if(tModal && tModal.classList.contains("active")) closeTransferReceiptModal();
     }
 });
 
-document.getElementById("signup-overlay").addEventListener("click", event => {
-    if(event.target.id === "signup-overlay") closeSignup();
-});
-
-document.getElementById("forgot-overlay").addEventListener("click", event => {
-    if(event.target.id === "forgot-overlay") closeForgotModal();
-});
-
-document.getElementById("complaint-overlay").addEventListener("click", event => {
-    if(event.target.id === "complaint-overlay") closeComplaintModal();
-});
-
-document.getElementById("review-overlay").addEventListener("click", event => {
-    if(event.target.id === "review-overlay") closeReviewModal();
+document.querySelectorAll(".modal-card").forEach(card => {
+    card.addEventListener("click", event => {
+        event.stopPropagation();
+    });
 });
 
 window.addEventListener('load', () => {
     clearAllForms();
+    setTimeout(clearAllForms, 150);
     checkSession();
+});
+
+window.addEventListener('pageshow', () => {
+    clearAllForms();
 });
 </script>
 </body>

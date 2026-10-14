@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import os
+import math
 
 app = Flask(__name__)
 
-# FIXED: Static secret key so sessions survive server restarts/hot-reloads
-app.secret_key = 'vaultline-core-secure-key-2026-production-vault'
+app.secret_key = os.environ.get('VAULTLINE_SECRET_KEY') or os.urandom(32)
 
 def format_dt(dt):
     if dt is None:
@@ -29,7 +29,6 @@ def get_sent_today(cursor, wallet_id):
     return float(cursor.fetchone()[0])
 
 def get_wallet_payload(cursor, user_id):
-    """Shared helper: builds the wallet dict used by login/check-session/get_wallet."""
     cursor.execute("""
         SELECT WalletId, AccountNo, Balance, DailyLimit
         FROM WALLETS WHERE UserID = ?
@@ -57,11 +56,17 @@ def register():
     full_name = data.get('name', '').strip()
     email = data.get('email', '').strip()
     password = data.get('password', '')
+    confirm_password = data.get('confirm_password', '')
     role = data.get('role', 'Customer')
-    account_no = 'VL-' + str(random.randint(10000, 99999))
 
-    if not full_name or not email or not password or not role:
+    if role not in ['Customer', 'Merchant']:
+        role = 'Customer'
+
+    if not full_name or not email or not password or not confirm_password:
         return jsonify({"success": False, "error": "All fields are required"}), 400
+
+    if password != confirm_password:
+        return jsonify({"success": False, "error": "Passwords do not match. Please re-enter."}), 400
 
     if len(password) < 6:
         return jsonify({"success": False, "error": "Password must contain at least 6 characters."}), 400
@@ -77,6 +82,19 @@ def register():
             conn.close()
             return jsonify({"success": False, "error": "This email is already registered. Please sign in instead."}), 400
 
+        # Account numbers are randomly generated, so check for a collision before registration.
+        account_no = None
+        for _ in range(5):
+            candidate = 'VL-' + str(random.randint(10000, 99999))
+            cursor.execute("SELECT 1 FROM WALLETS WHERE AccountNo = ?", candidate)
+            if not cursor.fetchone():
+                account_no = candidate
+                break
+
+        if account_no is None:
+            conn.close()
+            return jsonify({"success": False, "error": "Could not generate a unique account number. Please try again."}), 500
+
         cursor.execute("""
             EXEC usp_RegisterUser 
             @FullName=?, @Email=?, @PasswordHash=?, @Role=?, @AccountNo=?
@@ -87,7 +105,9 @@ def register():
     except Exception as e:
         error_text = str(e)
         if "UNIQUE KEY" in error_text or "duplicate key" in error_text.lower():
-            return jsonify({"success": False, "error": "This email is already registered. Please sign in instead."}), 400
+            # The email check above handles the normal case; keep the response generic
+            # because a database unique constraint can also be on AccountNo.
+            return jsonify({"success": False, "error": "Registration could not be completed. Please try again."}), 400
         return jsonify({"success": False, "error": "Registration failed. Please try again."}), 500
 
 # ---------------- LOGIN ----------------
@@ -117,18 +137,25 @@ def login():
 
         user_id, full_name, user_email, password_hash, role, status = row
 
+        if status != 'Active':
+            conn.close()
+            if status == 'Locked':
+                return jsonify({"success": False, "status": "Locked", "error": "Your account is currently locked."}), 403
+            return jsonify({"success": False, "status": status, "error": f"Account is {status}."}), 403
+
         if not check_password_hash(password_hash, password):
             if role != 'Admin':
                 cursor.execute("EXEC usp_HandleFailedLogin @Email=?", email)
                 conn.commit()
+
+                cursor.execute("SELECT Status FROM USERS WHERE UserId = ?", user_id)
+                new_status_row = cursor.fetchone()
+                if new_status_row and new_status_row[0] == 'Locked':
+                    conn.close()
+                    return jsonify({"success": False, "status": "Locked", "error": "Your account has been locked due to failed login attempts."}), 403
+
             conn.close()
             return jsonify({"success": False, "error": "Invalid email or password"}), 401
-
-        if status != 'Active':
-            conn.close()
-            if status == 'Locked':
-                return jsonify({"success": False, "error": "Account is Locked due to failed login attempts. Contact Admin to unlock."}), 403
-            return jsonify({"success": False, "error": f"Account is {status}. Contact Admin."}), 403
 
         cursor.execute("UPDATE USERS SET FailedLoginCount = 0 WHERE UserId = ?", user_id)
         conn.commit()
@@ -150,9 +177,9 @@ def login():
         })
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-# ---------------- CHECK SESSION (page-reload persistence) ----------------
+# ---------------- CHECK SESSION ----------------
 @app.route('/api/check-session', methods=['GET'])
 def check_session():
     user_id = session.get('user_id')
@@ -178,7 +205,7 @@ def check_session():
         if status != 'Active':
             conn.close()
             session.clear()
-            return jsonify({"success": False, "error": f"Account is {status}"}), 403
+            return jsonify({"success": False, "status": status, "error": f"Account is {status}"}), 403
 
         wallet_data = get_wallet_payload(cursor, uid)
         conn.close()
@@ -193,14 +220,32 @@ def check_session():
             "wallet": wallet_data
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
+
+@app.route('/api/check-account-status', methods=['POST'])
+def check_account_status():
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    if not email:
+        return jsonify({"success": False, "error": "Email is required"}), 400
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT Status FROM USERS WHERE Email = ?", email)
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return jsonify({"success": False, "error": "No account found with this email."}), 404
+        return jsonify({"success": True, "status": row[0]})
+    except Exception as e:
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 # ---------------- FORGOT / RESET PASSWORD ----------------
 @app.route('/api/reset-password', methods=['POST'])
 def reset_password():
     data = request.json or {}
     email = data.get('email', '').strip()
-    new_password = data.get('new_password', '').strip()
+    new_password = data.get('new_password', '')
 
     if not email or not new_password:
         return jsonify({"success": False, "error": "Email and new password are required."}), 400
@@ -232,15 +277,13 @@ def reset_password():
         conn.close()
         return jsonify({"success": True, "message": "Password updated successfully! You can now sign in."})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-# ---------------- LOGOUT ----------------
 @app.route('/api/logout', methods=['POST'])
 def logout():
     session.clear()
     return jsonify({"success": True})
 
-# ---------------- GET WALLET ----------------
 @app.route('/api/wallet/<int:user_id>', methods=['GET'])
 def get_wallet(user_id):
     if session.get('user_id') != user_id and session.get('role') != 'Admin':
@@ -257,9 +300,8 @@ def get_wallet(user_id):
 
         return jsonify({"success": True, "wallet": wallet_data})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-# ---------------- TRANSFER ----------------
 @app.route('/api/transfer', methods=['POST'])
 def transfer():
     current_uid = session.get('user_id')
@@ -267,15 +309,17 @@ def transfer():
         return jsonify({"success": False, "error": "Authentication required"}), 401
 
     data = request.json or {}
-    receiver_account_no = data.get('receiver_account_no')
+    receiver_account_no = (data.get('receiver_account_no') or '').strip()
+    if not receiver_account_no:
+        return jsonify({"success": False, "error": "Recipient account number is required"}), 400
     
     try:
         amount = float(data.get('amount', 0))
     except (ValueError, TypeError):
         return jsonify({"success": False, "error": "Invalid transfer amount"}), 400
 
-    if amount <= 0:
-        return jsonify({"success": False, "error": "Amount must be greater than zero"}), 400
+    if not math.isfinite(amount) or amount <= 0:
+        return jsonify({"success": False, "error": "Amount must be a finite value greater than zero"}), 400
 
     try:
         conn = get_connection()
@@ -339,9 +383,8 @@ def transfer():
         return jsonify({"success": True})
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-# ---------------- DEPOSIT ----------------
 @app.route('/api/deposit', methods=['POST'])
 def deposit():
     current_uid = session.get('user_id')
@@ -354,8 +397,8 @@ def deposit():
     except (ValueError, TypeError):
         return jsonify({"success": False, "error": "Invalid deposit amount"}), 400
 
-    if amount <= 0:
-        return jsonify({"success": False, "error": "Deposit amount must be greater than zero"}), 400
+    if not math.isfinite(amount) or amount <= 0:
+        return jsonify({"success": False, "error": "Deposit amount must be a finite value greater than zero"}), 400
 
     try:
         conn = get_connection()
@@ -373,9 +416,8 @@ def deposit():
         conn.close()
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-# ---------------- CUSTOMER SUMMARY & HISTORY ----------------
 @app.route('/api/history/<int:user_id>', methods=['GET'])
 def history(user_id):
     if session.get('user_id') != user_id and session.get('role') != 'Admin':
@@ -404,6 +446,7 @@ def history(user_id):
         transactions = []
         money_in = 0.0
         money_out = 0.0
+        inbound_count = 0
         pending_flagged = 0
 
         for r in rows:
@@ -422,6 +465,7 @@ def history(user_id):
                 account = sender_acc
                 if status == 'Verified':
                     money_in += amt_flt
+                    inbound_count += 1
 
             if status in ['Pending', 'Flagged'] or bool(is_flagged):
                 pending_flagged += 1
@@ -445,13 +489,13 @@ def history(user_id):
                 "money_in": money_in,
                 "money_out": money_out,
                 "total_txns": len(transactions),
+                "inbound_count": inbound_count,
                 "pending_flagged": pending_flagged
             }
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-# ---------------- MERCHANT SUMMARY & PAYMENTS ----------------
 @app.route('/api/merchant-payments/<int:user_id>', methods=['GET'])
 def merchant_payments(user_id):
     if session.get('user_id') != user_id and session.get('role') != 'Admin':
@@ -534,9 +578,8 @@ def merchant_payments(user_id):
             "revenue_trend": revenue_trend
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-# ---------------- ADMIN ONLY ENDPOINTS ----------------
 @app.route('/api/fraud-alerts', methods=['GET'])
 def fraud_alerts():
     if session.get('role') != 'Admin':
@@ -569,7 +612,7 @@ def fraud_alerts():
 
         return jsonify({"success": True, "alerts": alerts, "users": all_users})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 @app.route('/api/security-logs', methods=['GET'])
 def security_logs():
@@ -598,7 +641,7 @@ def security_logs():
         } for r in rows]
         return jsonify({"success": True, "logs": logs})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 @app.route('/api/unlock-account', methods=['POST'])
 def unlock_account():
@@ -620,7 +663,11 @@ def unlock_account():
             conn.close()
             return jsonify({"success": False, "error": "User not found with this email"}), 404
 
-        uid = user_row[0]
+        uid, status = user_row
+        if status == 'Active':
+            conn.close()
+            return jsonify({"success": False, "error": "This account is already Active."}), 400
+
         cursor.execute("UPDATE USERS SET Status = 'Active', FailedLoginCount = 0 WHERE UserId = ?", uid)
         cursor.execute("""
             INSERT INTO SecurityLogs(UserID, ActionType, Description)
@@ -630,7 +677,7 @@ def unlock_account():
         conn.close()
         return jsonify({"success": True, "message": f"Account {email} successfully unlocked and set Active."})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 @app.route('/api/freeze-account', methods=['POST'])
 def freeze_account():
@@ -662,9 +709,8 @@ def freeze_account():
         conn.close()
         return jsonify({"success": True, "message": f"Account {email} has been suspended/frozen."})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-# ---------------- ADMIN: REFUND / REVERSE A TRANSACTION ----------------
 @app.route('/api/admin/refund', methods=['POST'])
 def refund_transaction():
     if session.get('role') != 'Admin':
@@ -672,10 +718,12 @@ def refund_transaction():
 
     admin_id = session.get('user_id')
     data = request.json or {}
-    transaction_id = data.get('transaction_id')
 
-    if not transaction_id:
-        return jsonify({"success": False, "error": "Transaction ID is required"}), 400
+    raw_id = str(data.get('transaction_id', '')).replace('#', '').strip()
+    if not raw_id or not raw_id.isdigit():
+        return jsonify({"success": False, "error": "Please enter a valid numeric Transaction ID."}), 400
+
+    transaction_id = int(raw_id)
 
     try:
         conn = get_connection()
@@ -688,7 +736,7 @@ def refund_transaction():
         row = cursor.fetchone()
         if not row:
             conn.close()
-            return jsonify({"success": False, "error": "Transaction not found."}), 404
+            return jsonify({"success": False, "error": f"Transaction #{transaction_id} not found."}), 404
 
         sender_wallet_id, receiver_wallet_id, amount, status, ttype = row
 
@@ -696,22 +744,25 @@ def refund_transaction():
             conn.close()
             return jsonify({"success": False, "error": "Only wallet-to-wallet transfers can be refunded."}), 400
 
+        if status != 'Verified':
+            conn.close()
+            return jsonify({"success": False, "error": "Only verified transfers can be refunded."}), 400
+
         cursor.execute("""
             SELECT COUNT(*) FROM TRANSACTIONS
-            WHERE TransactionType = 'Refund' AND Amount = ?
-                  AND SenderWalletId = ? AND ReceiverWalletId = ?
-        """, amount, receiver_wallet_id, sender_wallet_id)
+            WHERE TransactionType = 'Refund' AND OriginalTransactionId = ?
+        """, transaction_id)
         already_refunded = cursor.fetchone()[0] > 0
         if already_refunded:
             conn.close()
-            return jsonify({"success": False, "error": "This transaction has already been refunded."}), 400
+            return jsonify({"success": False, "error": f"Transaction #{transaction_id} has already been refunded."}), 400
 
         cursor.execute("EXEC usp_RefundTransaction @TransactionId=?, @AdminUserId=?", transaction_id, admin_id)
         conn.commit()
         conn.close()
         return jsonify({"success": True, "message": f"Transaction #{transaction_id} refunded successfully."})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 @app.route('/api/analytics', methods=['GET'])
 def analytics():
@@ -787,11 +838,7 @@ def analytics():
             "active_wallets": active_wallets
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-# ============================================================
-# ACCOUNT UNLOCK COMPLAINT SYSTEM
-# ============================================================
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 def _verify_complaint_against_db(cursor, submitted_email, submitted_name, submitted_ref):
     cursor.execute("""
@@ -818,19 +865,18 @@ def _verify_complaint_against_db(cursor, submitted_email, submitted_name, submit
             "verified": False, 
             "user_id": user_id, 
             "account_status": db_status,
-            "reason": "Account reference/UserId cannot be empty."
+            "reason": "Account number cannot be empty."
         }
 
-    # Safe comparison: only compare account number if wallet exists
+    # Sirf Account Number strictly match hona chahiye
     acc_matches = bool(db_account_no and ref.upper() == db_account_no.strip().upper())
-    uid_matches = bool(ref == str(user_id))
 
-    if not (acc_matches or uid_matches):
+    if not acc_matches:
         return {
             "verified": False, 
             "user_id": user_id, 
             "account_status": db_status,
-            "reason": "Submitted account number/UserId does not belong to this email."
+            "reason": "Submitted account number does not belong to this email."
         }
 
     if (submitted_name or "").strip().lower() != (db_name or "").strip().lower():
@@ -871,6 +917,20 @@ def submit_complaint():
         conn = get_connection()
         cursor = conn.cursor()
 
+        # Check if a pending complaint already exists for this email
+        cursor.execute("""
+            SELECT ComplaintId FROM Complaints 
+            WHERE SubmittedEmail = ? AND Status = 'Pending'
+        """, email)
+        existing_pending = cursor.fetchone()
+
+        if existing_pending:
+            conn.close()
+            return jsonify({
+                "success": False, 
+                "error": f"You already have a pending unlock request (Complaint #{existing_pending[0]}). Please wait for admin review."
+            }), 400
+
         result = _verify_complaint_against_db(cursor, email, full_name, account_ref)
 
         cursor.execute("""
@@ -893,22 +953,31 @@ def submit_complaint():
             "message": "Your complaint has been submitted. An admin will review it shortly."
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
-@app.route('/api/complaints/<int:complaint_id>/status', methods=['GET'])
+@app.route('/api/complaints/<int:complaint_id>/status', methods=['POST'])
 def complaint_status(complaint_id):
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT Status, AdminRemarks, CreatedAt, ReviewedAt
+            SELECT Status, AdminRemarks, CreatedAt, ReviewedAt, SubmittedEmail
             FROM Complaints WHERE ComplaintId = ?
         """, complaint_id)
         row = cursor.fetchone()
         conn.close()
+        
         if not row:
             return jsonify({"success": False, "error": "Complaint not found."}), 404
-        status, remarks, created_at, reviewed_at = row
+            
+        status, remarks, created_at, reviewed_at, db_email = row
+        
+        if email.lower() != db_email.lower():
+            return jsonify({"success": False, "error": "Unauthorized: Email does not match this Complaint ID."}), 403
+            
         return jsonify({
             "success": True,
             "status": status,
@@ -917,7 +986,7 @@ def complaint_status(complaint_id):
             "reviewed_at": format_dt(reviewed_at)
         })
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 @app.route('/api/admin/complaints', methods=['GET'])
 def admin_list_complaints():
@@ -957,7 +1026,7 @@ def admin_list_complaints():
 
         return jsonify({"success": True, "complaints": complaints})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 @app.route('/api/admin/complaints/<int:complaint_id>/verify', methods=['POST'])
 def admin_reverify_complaint(complaint_id):
@@ -977,6 +1046,10 @@ def admin_reverify_complaint(complaint_id):
             return jsonify({"success": False, "error": "Complaint not found."}), 404
 
         full_name, email, account_ref, status = row
+        if status != 'Pending':
+            conn.close()
+            return jsonify({"success": False, "error": f"Complaint already {status}."}), 400
+
         result = _verify_complaint_against_db(cursor, email, full_name, account_ref)
 
         cursor.execute("""
@@ -991,7 +1064,7 @@ def admin_reverify_complaint(complaint_id):
 
         return jsonify({"success": True, "verification": result})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 @app.route('/api/admin/complaints/<int:complaint_id>/unlock', methods=['POST'])
 def admin_unlock_from_complaint(complaint_id):
@@ -1047,7 +1120,7 @@ def admin_unlock_from_complaint(complaint_id):
 
         return jsonify({"success": True, "message": f"Account for UserId {verified_user_id} unlocked and complaint resolved."})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 @app.route('/api/admin/complaints/<int:complaint_id>/reject', methods=['POST'])
 def admin_reject_complaint(complaint_id):
@@ -1087,8 +1160,7 @@ def admin_reject_complaint(complaint_id):
 
         return jsonify({"success": True, "message": "Complaint rejected."})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
+        return jsonify({"success": False, "error": "An internal server error occurred."}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

@@ -17,7 +17,6 @@ GO
 
 
 
-
 --user table
 CREATE TABLE USERS (
     UserId           INT           IDENTITY (1001, 1) PRIMARY KEY,
@@ -156,20 +155,23 @@ EXECUTE usp_RegisterUser @FullName = 'Hafsa Fatima', @Email = 'hafsa@vaultline.c
 @PasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949', 
 @Role = 'Customer', @AccountNo = 'VL-10492';
 
--- Hashmat Ali (Customer - Pass: pass123)
+UPDATE WALLETS SET DailyLimit = 50000.00 WHERE AccountNo = 'VL-10492';
+-- Hashmat Ali Customer 
 EXECUTE usp_RegisterUser @FullName = 'Hashmat Ali', @Email = 'ali@vaultline.com', 
 @PasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949', 
 @Role = 'Customer', @AccountNo = 'VL-10493';
 
--- Daniya Khan (Merchant - Pass: pass123)
+-- Daniya Khan Merchant 
 EXECUTE usp_RegisterUser @FullName = 'Daniya Khan', @Email = 'daniya@gmail.com', 
 @PasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949', 
 @Role = 'Merchant', @AccountNo = 'VL-10494';
 
--- Zubair Alam (Customer - Pass: pass123)
+-- Zubair Alam Customer
 EXECUTE usp_RegisterUser @FullName = 'Zubair Alam', @Email = 'zubair123@gmail.com', 
 @PasswordHash = 'scrypt:32768:8:1$XdwH9YSyXvqoGSHl$494cb5ba4726566c14cfd5c94a21ed5be796c867a434b16d1aacf398b40d61bf006679948b6c13dec2013e914979609330986527f28f45722a861b0980f38949', 
 @Role = 'Customer', @AccountNo = 'VL-10495';
+UPDATE WALLETS SET DailyLimit = 50000.00 WHERE AccountNo = 'VL-10495';
+
 
 --ADMIN ACCOUNT (bank staff not self-registered by users)
 EXECUTE usp_RegisterUser
@@ -188,7 +190,6 @@ FROM   WALLETS;
 
 SELECT *
 FROM   TRANSACTIONS;
-
 
 
 
@@ -647,3 +648,7 @@ EXEC usp_RefundTransaction @TransactionId = 88003, @AdminUserId = 1005;
 SELECT * FROM TRANSACTIONS WHERE TransactionType = 'Refund';
 SELECT * FROM SecurityLogs WHERE ActionType = 'TRANSACTION_REFUNDED';
 GO
+
+
+
+------------------------------
